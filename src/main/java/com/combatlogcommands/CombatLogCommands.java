@@ -20,7 +20,6 @@ public class CombatLogCommands implements ModInitializer {
 
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(CombatHandler::onDamage);
 		ServerPlayerEvents.LEAVE.register(CombatHandler::onLeave);
-		ServerPlayerEvents.JOIN.register(CombatHandler::onJoin);
 		ServerTickEvents.END_SERVER_TICK.register(CombatHandler::onServerTick);
 
 		LOGGER.info("CombatLogCommands initialized");

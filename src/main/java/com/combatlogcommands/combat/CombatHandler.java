@@ -38,14 +38,6 @@ public class CombatHandler {
 		}
 	}
 
-	public static void onJoin(ServerPlayer player) {
-		try {
-			handleJoin(player);
-		} catch (Throwable t) {
-			CombatLogCommands.LOGGER.error("combatlogcommands join handling threw", t);
-		}
-	}
-
 	public static void onServerTick(MinecraftServer server) {
 		try {
 			handleServerTick(server);
@@ -69,26 +61,19 @@ public class CombatHandler {
 		state.tag(victim.getUUID(), CombatLogCommands.COMBAT_DURATION_MILLIS);
 	}
 
+	// ServerPlayerEvents.LEAVE fires at the very start of player removal, while the player is still
+	// fully present in the world - so killing them here (item drop, death message, the works) happens
+	// before disconnect processing, not after. That's what stops combat-logging from being a free out:
+	// there's no window where staying disconnected avoids the punishment.
 	private static void handleLeave(ServerPlayer player) {
 		MinecraftServer server = player.level().getServer();
 
 		CombatState state = CombatState.get(server);
 		if (state.isInCombat(player.getUUID())) {
-			state.markPendingLogoutKill(player.getUUID());
-			CombatLogCommands.LOGGER.info("{} disconnected while in combat, will be slain on next login", player.getScoreboardName());
-		}
-		state.clear(player.getUUID());
-	}
-
-	private static void handleJoin(ServerPlayer player) {
-		MinecraftServer server = player.level().getServer();
-
-		CombatState state = CombatState.get(server);
-		if (state.consumePendingLogoutKill(player.getUUID())) {
 			CombatLogCommands.LOGGER.info("Slaying {} for disconnecting during combat", player.getScoreboardName());
 			player.kill(player.level());
-			player.sendSystemMessage(Component.literal("You disconnected during combat and were slain.").withStyle(COMBAT_COLOR));
 		}
+		state.clear(player.getUUID());
 	}
 
 	private static void handleServerTick(MinecraftServer server) {

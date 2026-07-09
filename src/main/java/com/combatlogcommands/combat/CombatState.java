@@ -9,39 +9,30 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Tracks per-player combat tag expiry and who needs to be slain for logging out mid-combat.
- * Persisted so a combat-logger is still punished even after a server restart.
- */
+/** Tracks per-player combat tag expiry, in memory only - a disconnect during combat is punished immediately, not on rejoin. */
 public class CombatState extends SavedData {
 	public static final Codec<CombatState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-			Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.LONG).fieldOf("combat_ends_at").forGetter(s -> s.combatEndsAt),
-			UUIDUtil.CODEC.listOf().fieldOf("pending_logout_kill").forGetter(s -> new ArrayList<>(s.pendingLogoutKill))
+			Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.LONG).fieldOf("combat_ends_at").forGetter(s -> s.combatEndsAt)
 	).apply(instance, CombatState::new));
 
 	public static final SavedDataType<CombatState> TYPE = new SavedDataType<>(
 			Identifier.fromNamespaceAndPath(CombatLogCommands.MOD_ID, "combat_data"), CombatState::new, CODEC, null);
 
 	private final Map<UUID, Long> combatEndsAt;
-	private final Set<UUID> pendingLogoutKill;
 
 	public CombatState() {
-		this(new ConcurrentHashMap<>(), new ArrayList<>());
+		this(new ConcurrentHashMap<>());
 	}
 
-	// Commands can be dispatched off the main server thread by other mods/panels, and our mixin now
-	// checks combat state on every command, so these need to tolerate concurrent access.
-	private CombatState(Map<UUID, Long> combatEndsAt, List<UUID> pendingLogoutKill) {
+	// Commands can be dispatched off the main server thread by other mods/panels, and our mixin checks
+	// combat state on every single command, so this needs to tolerate concurrent access.
+	private CombatState(Map<UUID, Long> combatEndsAt) {
 		this.combatEndsAt = combatEndsAt instanceof ConcurrentHashMap ? combatEndsAt : new ConcurrentHashMap<>(combatEndsAt);
-		this.pendingLogoutKill = ConcurrentHashMap.newKeySet();
-		this.pendingLogoutKill.addAll(pendingLogoutKill);
 	}
 
 	public static CombatState get(MinecraftServer server) {
@@ -70,20 +61,6 @@ public class CombatState extends SavedData {
 		if (combatEndsAt.remove(id) != null) {
 			setDirty();
 		}
-	}
-
-	public void markPendingLogoutKill(UUID id) {
-		if (pendingLogoutKill.add(id)) {
-			setDirty();
-		}
-	}
-
-	public boolean consumePendingLogoutKill(UUID id) {
-		boolean was = pendingLogoutKill.remove(id);
-		if (was) {
-			setDirty();
-		}
-		return was;
 	}
 
 	public Set<UUID> combatants() {
