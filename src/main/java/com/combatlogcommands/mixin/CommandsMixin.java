@@ -1,5 +1,6 @@
 package com.combatlogcommands.mixin;
 
+import com.combatlogcommands.combat.BackCooldown;
 import com.combatlogcommands.combat.CombatState;
 import com.combatlogcommands.config.ModConfig;
 import net.minecraft.ChatFormatting;
@@ -28,7 +29,7 @@ public class CommandsMixin {
 		}
 
 		MinecraftServer server = source.getServer();
-		if (server == null || !CombatState.get(server).isInCombat(player.getUUID())) {
+		if (server == null) {
 			return;
 		}
 
@@ -38,9 +39,21 @@ public class CommandsMixin {
 			label = label.substring(0, spaceIndex);
 		}
 
-		if (ModConfig.get().isBlockedCommand(label)) {
+		if (CombatState.get(server).isInCombat(player.getUUID()) && ModConfig.get().isBlockedCommand(label)) {
 			source.sendFailure(Component.literal("You can't use /" + label + " during combat.").withStyle(ChatFormatting.RED));
 			ci.cancel();
+			return;
+		}
+
+		if (label.equalsIgnoreCase("back")) {
+			long remainingMs = BackCooldown.remainingMillis(player.getUUID());
+			if (remainingMs > 0) {
+				long remainingSeconds = (remainingMs + 999) / 1000;
+				source.sendFailure(Component.literal("You must wait " + remainingSeconds + "s before using /back again.").withStyle(ChatFormatting.RED));
+				ci.cancel();
+				return;
+			}
+			BackCooldown.use(player.getUUID());
 		}
 	}
 }
