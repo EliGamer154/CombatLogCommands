@@ -7,6 +7,8 @@ import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -76,6 +78,7 @@ public class CombatHandler {
 		if (state.isInCombat(player.getUUID())) {
 			CombatLogCommands.LOGGER.info("Slaying {} for disconnecting during combat", player.getScoreboardName());
 			strikeVisualLightning(player);
+			playThunderSound(player);
 			player.kill(player.level());
 			// A literal (non-translatable) component, not a data-driven death message: this mod ships no
 			// client-side resource pack, and translation keys are resolved on the client, so a custom
@@ -97,6 +100,14 @@ public class CombatHandler {
 		bolt.setVisualOnly(true);
 		bolt.setPos(player.getX(), player.getY(), player.getZ());
 		level.addFreshEntity(bolt);
+	}
+
+	// Same volume/pitch vanilla itself uses for real lightning strikes - thunder is meant to carry, not be
+	// subtle. null "except" so it's audible to everyone nearby, including the disconnecting player: LEAVE
+	// fires before their connection actually closes, so the sound packet still reaches them.
+	private static void playThunderSound(ServerPlayer player) {
+		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+				SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 10000.0f, 0.8f);
 	}
 
 	private static void handleServerTick(MinecraftServer server) {
