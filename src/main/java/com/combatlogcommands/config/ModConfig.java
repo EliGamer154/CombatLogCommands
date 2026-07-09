@@ -20,7 +20,9 @@ public class ModConfig {
 
 	private List<String> blockedCommands = new ArrayList<>(List.of("back", "tpa", "home", "spawn", "tpahere"));
 
-	public static ModConfig get() {
+	// Commands can be dispatched off the main server thread by other mods/panels, and this can be
+	// reached from the very first command check, so the lazy load must not race.
+	public static synchronized ModConfig get() {
 		if (instance == null) {
 			instance = load();
 		}

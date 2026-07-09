@@ -1,5 +1,6 @@
 package com.combatlogcommands.mixin;
 
+import com.combatlogcommands.CombatLogCommands;
 import com.combatlogcommands.combat.BackCooldown;
 import com.combatlogcommands.combat.CombatState;
 import com.combatlogcommands.config.ModConfig;
@@ -26,6 +27,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class CommandsMixin {
 	@Inject(method = "performCommand", at = @At("HEAD"), cancellable = true)
 	private void combatlogcommands$blockDuringCombat(ParseResults<CommandSourceStack> parseResults, String command, CallbackInfo ci) {
+		// This method is the single choke point for every command on the server, from every mod. A bug
+		// here must never be allowed to escape and break command execution for other players/mods, so
+		// anything unexpected is swallowed and logged rather than left to propagate.
+		try {
+			combatlogcommands$check(parseResults, command, ci);
+		} catch (Throwable t) {
+			CombatLogCommands.LOGGER.error("combatlogcommands command check threw, letting the command through unblocked", t);
+		}
+	}
+
+	private static void combatlogcommands$check(ParseResults<CommandSourceStack> parseResults, String command, CallbackInfo ci) {
 		CommandSourceStack source = parseResults.getContext().getSource();
 		ServerPlayer player = source.getPlayer();
 		if (player == null) {

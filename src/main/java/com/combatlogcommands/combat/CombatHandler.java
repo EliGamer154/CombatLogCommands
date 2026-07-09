@@ -18,7 +18,43 @@ public class CombatHandler {
 	private CombatHandler() {
 	}
 
+	// Each of these is registered directly against a shared Fabric event (fired for every entity/player/tick
+	// on the server, for every mod listening). Fabric chains listeners together, so an uncaught exception here
+	// would also stop any other mod's listener on the same event from running. Never let one escape.
+
 	public static void onDamage(LivingEntity entity, DamageSource source, float baseDamageTaken, float damageTaken, boolean blocked) {
+		try {
+			handleDamage(entity, source);
+		} catch (Throwable t) {
+			CombatLogCommands.LOGGER.error("combatlogcommands damage handling threw", t);
+		}
+	}
+
+	public static void onLeave(ServerPlayer player) {
+		try {
+			handleLeave(player);
+		} catch (Throwable t) {
+			CombatLogCommands.LOGGER.error("combatlogcommands leave handling threw", t);
+		}
+	}
+
+	public static void onJoin(ServerPlayer player) {
+		try {
+			handleJoin(player);
+		} catch (Throwable t) {
+			CombatLogCommands.LOGGER.error("combatlogcommands join handling threw", t);
+		}
+	}
+
+	public static void onServerTick(MinecraftServer server) {
+		try {
+			handleServerTick(server);
+		} catch (Throwable t) {
+			CombatLogCommands.LOGGER.error("combatlogcommands tick handling threw", t);
+		}
+	}
+
+	private static void handleDamage(LivingEntity entity, DamageSource source) {
 		if (!(entity instanceof ServerPlayer victim)) {
 			return;
 		}
@@ -33,7 +69,7 @@ public class CombatHandler {
 		state.tag(victim.getUUID(), CombatLogCommands.COMBAT_DURATION_MILLIS);
 	}
 
-	public static void onLeave(ServerPlayer player) {
+	private static void handleLeave(ServerPlayer player) {
 		MinecraftServer server = player.level().getServer();
 
 		CombatState state = CombatState.get(server);
@@ -44,7 +80,7 @@ public class CombatHandler {
 		state.clear(player.getUUID());
 	}
 
-	public static void onJoin(ServerPlayer player) {
+	private static void handleJoin(ServerPlayer player) {
 		MinecraftServer server = player.level().getServer();
 
 		CombatState state = CombatState.get(server);
@@ -55,7 +91,7 @@ public class CombatHandler {
 		}
 	}
 
-	public static void onServerTick(MinecraftServer server) {
+	private static void handleServerTick(MinecraftServer server) {
 		if (server.getTickCount() % 10 != 0) {
 			return;
 		}

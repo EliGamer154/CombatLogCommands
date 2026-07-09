@@ -10,12 +10,11 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Tracks per-player combat tag expiry and who needs to be slain for logging out mid-combat.
@@ -34,12 +33,15 @@ public class CombatState extends SavedData {
 	private final Set<UUID> pendingLogoutKill;
 
 	public CombatState() {
-		this(new HashMap<>(), new ArrayList<>());
+		this(new ConcurrentHashMap<>(), new ArrayList<>());
 	}
 
+	// Commands can be dispatched off the main server thread by other mods/panels, and our mixin now
+	// checks combat state on every command, so these need to tolerate concurrent access.
 	private CombatState(Map<UUID, Long> combatEndsAt, List<UUID> pendingLogoutKill) {
-		this.combatEndsAt = combatEndsAt;
-		this.pendingLogoutKill = new HashSet<>(pendingLogoutKill);
+		this.combatEndsAt = combatEndsAt instanceof ConcurrentHashMap ? combatEndsAt : new ConcurrentHashMap<>(combatEndsAt);
+		this.pendingLogoutKill = ConcurrentHashMap.newKeySet();
+		this.pendingLogoutKill.addAll(pendingLogoutKill);
 	}
 
 	public static CombatState get(MinecraftServer server) {

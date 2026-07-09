@@ -1,13 +1,13 @@
 package com.combatlogcommands.combat;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-/** Simple in-memory 30-second cooldown between uses of /back. Command execution always runs on the server thread. */
+/** Simple in-memory 30-second cooldown between uses of /back. Commands can be dispatched off the main thread by other mods/panels, so this needs to be concurrency-safe. */
 public class BackCooldown {
 	private static final long COOLDOWN_MILLIS = 30_000L;
-	private static final Map<UUID, Long> lastUsedAt = new HashMap<>();
+	private static final Map<UUID, Long> lastUsedAt = new ConcurrentHashMap<>();
 
 	private BackCooldown() {
 	}
