@@ -5,8 +5,12 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.List;
@@ -71,9 +75,23 @@ public class CombatHandler {
 		CombatState state = CombatState.get(server);
 		if (state.isInCombat(player.getUUID())) {
 			CombatLogCommands.LOGGER.info("Slaying {} for disconnecting during combat", player.getScoreboardName());
+			strikeVisualLightning(player);
 			player.kill(player.level());
 		}
 		state.clear(player.getUUID());
+	}
+
+	// Visual-only: no damage, no block ignition, no copper effects - purely a "struck down" effect for
+	// the combat-log kill.
+	private static void strikeVisualLightning(ServerPlayer player) {
+		ServerLevel level = player.level();
+		LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
+		if (bolt == null) {
+			return;
+		}
+		bolt.setVisualOnly(true);
+		bolt.setPos(player.getX(), player.getY(), player.getZ());
+		level.addFreshEntity(bolt);
 	}
 
 	private static void handleServerTick(MinecraftServer server) {
