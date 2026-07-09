@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "combatlogcommands",
+	"version": "${version}",
+	"name": "CombatLogCommands",
+	"description": "PvP combat tagging: shows a 15-second combat timer, blocks escape commands during combat, and kills players who log out while tagged.",
+	"authors": [
+		"EliGamer154"
+	],
+	"contact": {
+		"sources": "https://github.com/EliGamer154/CombatLogCommands"
+	},
+	"license": "MIT",
+	"environment": "server",
+	"entrypoints": {
+		"main": [
+			"com.combatlogcommands.CombatLogCommands"
+		]
+	},
+	"mixins": [
+		"combatlogcommands.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": ">=26.1.2 <=26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
