@@ -77,6 +77,11 @@ public class CombatHandler {
 			CombatLogCommands.LOGGER.info("Slaying {} for disconnecting during combat", player.getScoreboardName());
 			strikeVisualLightning(player);
 			player.kill(player.level());
+			// A literal (non-translatable) component, not a data-driven death message: this mod ships no
+			// client-side resource pack, and translation keys are resolved on the client, so a custom
+			// DamageType's message would just show as its raw, untranslated key to players.
+			Component message = Component.literal(player.getScoreboardName() + " has logged out during combat!").withStyle(COMBAT_COLOR);
+			server.getPlayerList().broadcastSystemMessage(message, false);
 		}
 		state.clear(player.getUUID());
 	}
