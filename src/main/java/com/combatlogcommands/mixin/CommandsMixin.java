@@ -3,6 +3,7 @@ package com.combatlogcommands.mixin;
 import com.combatlogcommands.combat.BackCooldown;
 import com.combatlogcommands.combat.CombatState;
 import com.combatlogcommands.config.ModConfig;
+import com.mojang.brigadier.ParseResults;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -15,14 +16,17 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Every player-typed command funnels through {@link Commands#performPrefixedCommand}, regardless of
- * which mod registered it. Intercepting here lets us block the configured escape commands for any
- * mod's command, not just ones this mod knows about.
+ * Every command dispatch - chat-typed, prefixed, command blocks, functions - funnels through
+ * {@link Commands#performCommand}, regardless of which mod registered the command. Intercepting here
+ * lets us block the configured escape commands for any mod's command, not just ones this mod knows about.
+ * (performPrefixedCommand is not the right target: it just strips a leading "/" and delegates here -
+ * the normal player chat-command path calls this method directly.)
  */
 @Mixin(Commands.class)
 public class CommandsMixin {
-	@Inject(method = "performPrefixedCommand", at = @At("HEAD"), cancellable = true)
-	private void combatlogcommands$blockDuringCombat(CommandSourceStack source, String command, CallbackInfo ci) {
+	@Inject(method = "performCommand", at = @At("HEAD"), cancellable = true)
+	private void combatlogcommands$blockDuringCombat(ParseResults<CommandSourceStack> parseResults, String command, CallbackInfo ci) {
+		CommandSourceStack source = parseResults.getContext().getSource();
 		ServerPlayer player = source.getPlayer();
 		if (player == null) {
 			return;

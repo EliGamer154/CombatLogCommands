@@ -39,6 +39,7 @@ public class CombatHandler {
 		CombatState state = CombatState.get(server);
 		if (state.isInCombat(player.getUUID())) {
 			state.markPendingLogoutKill(player.getUUID());
+			CombatLogCommands.LOGGER.info("{} disconnected while in combat, will be slain on next login", player.getScoreboardName());
 		}
 		state.clear(player.getUUID());
 	}
@@ -48,6 +49,7 @@ public class CombatHandler {
 
 		CombatState state = CombatState.get(server);
 		if (state.consumePendingLogoutKill(player.getUUID())) {
+			CombatLogCommands.LOGGER.info("Slaying {} for disconnecting during combat", player.getScoreboardName());
 			player.kill(player.level());
 			player.sendSystemMessage(Component.literal("You disconnected during combat and were slain.").withStyle(COMBAT_COLOR));
 		}
