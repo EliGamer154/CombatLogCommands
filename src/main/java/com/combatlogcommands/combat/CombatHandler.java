@@ -9,11 +9,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +55,15 @@ public class CombatHandler {
 			handleServerTick(server);
 		} catch (Throwable t) {
 			CombatLogCommands.LOGGER.error("combatlogcommands tick handling threw", t);
+		}
+	}
+
+	public static InteractionResult onUseItem(Level world, Player player, InteractionHand hand) {
+		try {
+			return handleUseItem(world, player, hand);
+		} catch (Throwable t) {
+			CombatLogCommands.LOGGER.error("combatlogcommands item-use handling threw", t);
+			return InteractionResult.PASS;
 		}
 	}
 
@@ -108,6 +123,36 @@ public class CombatHandler {
 	private static void playThunderSound(ServerPlayer player) {
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
 				SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 10000.0f, 0.8f);
+	}
+
+	// ItemEvents.USE wraps ItemStack's own dispatch to Item.use() - returning non-PASS here skips the
+	// vanilla firework use entirely (including the elytra-boost path, which also goes through use()).
+	private static InteractionResult handleUseItem(Level world, Player player, InteractionHand hand) {
+		if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer)) {
+			return InteractionResult.PASS;
+		}
+
+		ItemStack stack = player.getItemInHand(hand);
+		if (stack.getItem() != Items.FIREWORK_ROCKET) {
+			return InteractionResult.PASS;
+		}
+
+		MinecraftServer server = serverPlayer.level().getServer();
+		if (server == null || !CombatState.get(server).isInCombat(serverPlayer.getUUID())) {
+			return InteractionResult.PASS;
+		}
+
+		UUID id = serverPlayer.getUUID();
+		long remainingMs = FireworkCooldown.remainingMillis(id);
+		if (remainingMs > 0) {
+			long remainingSeconds = (remainingMs + 999) / 1000;
+			serverPlayer.sendSystemMessage(
+					Component.literal("You must wait " + remainingSeconds + "s before using another firework rocket.").withStyle(COMBAT_COLOR));
+			return InteractionResult.FAIL;
+		}
+
+		FireworkCooldown.use(id);
+		return InteractionResult.PASS;
 	}
 
 	private static void handleServerTick(MinecraftServer server) {

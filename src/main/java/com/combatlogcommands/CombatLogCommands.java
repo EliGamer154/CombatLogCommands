@@ -6,6 +6,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.ItemEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,7 @@ public class CombatLogCommands implements ModInitializer {
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(CombatHandler::onDamage);
 		ServerPlayerEvents.LEAVE.register(CombatHandler::onLeave);
 		ServerTickEvents.END_SERVER_TICK.register(CombatHandler::onServerTick);
+		ItemEvents.USE.register(CombatHandler::onUseItem);
 
 		LOGGER.info("CombatLogCommands initialized");
 	}
