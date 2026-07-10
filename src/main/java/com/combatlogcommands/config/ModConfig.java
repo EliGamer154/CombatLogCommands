@@ -18,7 +18,7 @@ public class ModConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static ModConfig instance;
 
-	private List<String> blockedCommands = new ArrayList<>(List.of("back", "tpa", "home", "spawn", "tpahere"));
+	private List<String> blockedCommands = new ArrayList<>(List.of("back", "tpa", "tpaccept", "home", "spawn", "tpahere"));
 
 	// Commands can be dispatched off the main server thread by other mods/panels, and this can be
 	// reached from the very first command check, so the lazy load must not race.
