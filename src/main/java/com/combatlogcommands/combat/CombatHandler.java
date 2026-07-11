@@ -58,12 +58,15 @@ public class CombatHandler {
 		}
 	}
 
+	// ItemEvents.USE contract: null means "not handled, let vanilla run"; ANY non-null result - even
+	// PASS - replaces the item's real use() entirely. Returning PASS here is what broke all item use
+	// (fireworks/elytra boosting included) in v1.2.0/1.2.1.
 	public static InteractionResult onUseItem(Level world, Player player, InteractionHand hand) {
 		try {
 			return handleUseItem(world, player, hand);
 		} catch (Throwable t) {
 			CombatLogCommands.LOGGER.error("combatlogcommands item-use handling threw", t);
-			return InteractionResult.PASS;
+			return null;
 		}
 	}
 
@@ -125,21 +128,22 @@ public class CombatHandler {
 				SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 10000.0f, 0.8f);
 	}
 
-	// ItemEvents.USE wraps ItemStack's own dispatch to Item.use() - returning non-PASS here skips the
-	// vanilla firework use entirely (including the elytra-boost path, which also goes through use()).
+	// Returns null (vanilla proceeds) in every case except a firework used mid-combat while its 3.5s
+	// cooldown is still running, where FAIL cancels the use. Covers both thrown rockets and elytra
+	// boosting, since both go through the same FireworkRocketItem.use() this event wraps.
 	private static InteractionResult handleUseItem(Level world, Player player, InteractionHand hand) {
 		if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer)) {
-			return InteractionResult.PASS;
+			return null;
 		}
 
 		ItemStack stack = player.getItemInHand(hand);
 		if (stack.getItem() != Items.FIREWORK_ROCKET) {
-			return InteractionResult.PASS;
+			return null;
 		}
 
 		MinecraftServer server = serverPlayer.level().getServer();
 		if (server == null || !CombatState.get(server).isInCombat(serverPlayer.getUUID())) {
-			return InteractionResult.PASS;
+			return null;
 		}
 
 		UUID id = serverPlayer.getUUID();
@@ -152,7 +156,7 @@ public class CombatHandler {
 		}
 
 		FireworkCooldown.use(id);
-		return InteractionResult.PASS;
+		return null;
 	}
 
 	private static void handleServerTick(MinecraftServer server) {
