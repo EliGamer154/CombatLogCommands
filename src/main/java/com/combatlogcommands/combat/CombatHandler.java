@@ -128,9 +128,10 @@ public class CombatHandler {
 				SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 10000.0f, 0.8f);
 	}
 
-	// Returns null (vanilla proceeds) in every case except a firework used mid-combat while its 3.5s
-	// cooldown is still running, where FAIL cancels the use. Covers both thrown rockets and elytra
-	// boosting, since both go through the same FireworkRocketItem.use() this event wraps.
+	// Always returns null - the rocket launches normally, and we put it on vanilla's item cooldown
+	// (the ender-pearl-style white bar) afterwards. Vanilla enforces the block itself:
+	// ServerPlayerGameMode.useItem returns early while isOnCooldown, so re-uses during the cooldown
+	// never even reach this handler, and ServerItemCooldowns syncs the bar to the client for us.
 	private static InteractionResult handleUseItem(Level world, Player player, InteractionHand hand) {
 		if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer)) {
 			return null;
@@ -146,16 +147,8 @@ public class CombatHandler {
 			return null;
 		}
 
-		UUID id = serverPlayer.getUUID();
-		long remainingMs = FireworkCooldown.remainingMillis(id);
-		if (remainingMs > 0) {
-			long remainingSeconds = (remainingMs + 999) / 1000;
-			serverPlayer.sendSystemMessage(
-					Component.literal("You must wait " + remainingSeconds + "s before using another firework rocket.").withStyle(COMBAT_COLOR));
-			return InteractionResult.FAIL;
-		}
-
-		FireworkCooldown.use(id);
+		int cooldownTicks = FireworkCooldown.nextCooldownTicks(serverPlayer.getUUID());
+		serverPlayer.getCooldowns().addCooldown(stack, cooldownTicks);
 		return null;
 	}
 

@@ -9,7 +9,7 @@ A Fabric server-side mod for Minecraft **26.1.2 - 26.2** that adds PvP combat ta
 - While in combat, players can't use `/back`, `/tpa`, `/tpaccept`, `/home`, `/spawn`, or `/tpahere` (or any other command listed in the config) — attempting to do so sends a warning in chat and cancels the command, regardless of which mod added it.
 - If a tagged player disconnects while still in combat, they are killed **immediately**, before the disconnect completes — there's no window to camp offline and dodge the punishment. A visual-only lightning bolt strikes them for effect (no fire, no block/entity damage from it — the kill itself is what does the damage), with the vanilla thunder sound, and everyone sees "**\<player\> has logged out during combat!**" in chat.
 - `/back` also has its own **30-second cooldown**, independent of combat, so it can't be spammed.
-- Firework rockets have a **3.5-second cooldown while in combat** (elytra boosting included), so they can't be spammed to escape a fight. No cooldown outside combat.
+- Firework rockets have a **1.5-second cooldown while in combat** (elytra boosting included), shown as the vanilla ender-pearl-style white bar on the item — no chat spam. Every 3rd rocket, the cooldown stretches to **2.5 seconds**. No cooldown outside combat.
 
 ## Config
 
