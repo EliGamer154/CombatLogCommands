@@ -13,7 +13,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Server-side config. Loaded lazily, re-savable via {@code /combatlog reload} and
@@ -49,6 +52,7 @@ public class ModConfig {
 	/** Overwrites the config file with default settings. */
 	public static synchronized void reset() {
 		instance = new ModConfig();
+		instance.makeThreadSafe();
 		instance.save();
 	}
 
@@ -62,15 +66,7 @@ public class ModConfig {
 			try (Reader reader = Files.newBufferedReader(path)) {
 				ModConfig loaded = GSON.fromJson(reader, ModConfig.class);
 				if (loaded != null) {
-					if (loaded.blockedCommands == null) {
-						loaded.blockedCommands = new ArrayList<>();
-					}
-					if (loaded.blockedWhenTargetInCombat == null) {
-						loaded.blockedWhenTargetInCombat = new ArrayList<>();
-					}
-					if (loaded.playerOverrides == null) {
-						loaded.playerOverrides = new HashMap<>();
-					}
+					loaded.makeThreadSafe();
 					loaded.save();
 					return loaded;
 				}
@@ -79,8 +75,17 @@ public class ModConfig {
 			}
 		}
 		ModConfig config = new ModConfig();
+		config.makeThreadSafe();
 		config.save();
 		return config;
+	}
+
+	// The mixin reads these collections on every command, potentially off the main thread, while the
+	// in-game /combatlog commands mutate them - swap Gson's plain collections for concurrent ones.
+	private void makeThreadSafe() {
+		blockedCommands = new CopyOnWriteArrayList<>(blockedCommands == null ? List.of() : blockedCommands);
+		blockedWhenTargetInCombat = new CopyOnWriteArrayList<>(blockedWhenTargetInCombat == null ? List.of() : blockedWhenTargetInCombat);
+		playerOverrides = new ConcurrentHashMap<>(playerOverrides == null ? Map.of() : playerOverrides);
 	}
 
 	private void save() {
@@ -149,6 +154,130 @@ public class ModConfig {
 			}
 		}
 		return null;
+	}
+
+	// --- in-game mutation (each change saves to disk immediately) ---
+
+	public synchronized void setCombatDurationSeconds(double seconds) {
+		combatDurationSeconds = seconds;
+		save();
+	}
+
+	public synchronized void setBackCooldownSeconds(double seconds) {
+		backCooldownSeconds = seconds;
+		save();
+	}
+
+	public synchronized void setFireworkCooldownSeconds(double seconds) {
+		fireworkCooldownSeconds = seconds;
+		save();
+	}
+
+	public synchronized void setFireworkEveryThirdCooldownSeconds(double seconds) {
+		fireworkEveryThirdCooldownSeconds = seconds;
+		save();
+	}
+
+	/** Returns false if the command was already in the list. */
+	public synchronized boolean addBlockedCommand(String command) {
+		if (containsIgnoreCase(blockedCommands, command)) {
+			return false;
+		}
+		blockedCommands.add(command.toLowerCase(Locale.ROOT));
+		save();
+		return true;
+	}
+
+	/** Returns false if the command was not in the list. */
+	public synchronized boolean removeBlockedCommand(String command) {
+		boolean removed = blockedCommands.removeIf(entry -> entry.equalsIgnoreCase(command));
+		if (removed) {
+			save();
+		}
+		return removed;
+	}
+
+	/** Returns false if the command was already in the list. */
+	public synchronized boolean addTargetBlockedCommand(String command) {
+		if (containsIgnoreCase(blockedWhenTargetInCombat, command)) {
+			return false;
+		}
+		blockedWhenTargetInCombat.add(command.toLowerCase(Locale.ROOT));
+		save();
+		return true;
+	}
+
+	/** Returns false if the command was not in the list. */
+	public synchronized boolean removeTargetBlockedCommand(String command) {
+		boolean removed = blockedWhenTargetInCombat.removeIf(entry -> entry.equalsIgnoreCase(command));
+		if (removed) {
+			save();
+		}
+		return removed;
+	}
+
+	public synchronized void setPlayerCombatDuration(String playerName, double seconds) {
+		overrideOrCreate(playerName).combatDurationSeconds = seconds;
+		save();
+	}
+
+	public synchronized void setPlayerFireworkCooldown(String playerName, double seconds) {
+		overrideOrCreate(playerName).fireworkCooldownSeconds = seconds;
+		save();
+	}
+
+	public synchronized void setPlayerFireworkEveryThirdCooldown(String playerName, double seconds) {
+		overrideOrCreate(playerName).fireworkEveryThirdCooldownSeconds = seconds;
+		save();
+	}
+
+	/** Removes all overrides for a player. Returns false if they had none. */
+	public synchronized boolean clearPlayerOverride(String playerName) {
+		boolean removed = playerOverrides.keySet().removeIf(key -> key.equalsIgnoreCase(playerName));
+		if (removed) {
+			save();
+		}
+		return removed;
+	}
+
+	private PlayerOverride overrideOrCreate(String playerName) {
+		PlayerOverride existing = overrideFor(playerName);
+		if (existing != null) {
+			return existing;
+		}
+		PlayerOverride created = new PlayerOverride();
+		playerOverrides.put(playerName, created);
+		return created;
+	}
+
+	/** Multiline plain-text summary of the current settings, for /combatlog show. */
+	public synchronized String describe() {
+		StringBuilder text = new StringBuilder();
+		text.append("Combat duration: ").append(combatDurationSeconds).append("s");
+		text.append(" | /back cooldown: ").append(backCooldownSeconds).append("s");
+		text.append("\nFirework cooldown: ").append(fireworkCooldownSeconds).append("s");
+		text.append(" (every 3rd: ").append(fireworkEveryThirdCooldownSeconds).append("s)");
+		text.append("\nBlocked in combat: ").append(String.join(", ", blockedCommands));
+		text.append("\nBlocked when target in combat: ").append(String.join(", ", blockedWhenTargetInCombat));
+		if (playerOverrides.isEmpty()) {
+			text.append("\nPlayer overrides: none");
+		} else {
+			text.append("\nPlayer overrides:");
+			for (Map.Entry<String, PlayerOverride> entry : playerOverrides.entrySet()) {
+				PlayerOverride override = entry.getValue();
+				text.append("\n  ").append(entry.getKey()).append(":");
+				if (override.combatDurationSeconds != null) {
+					text.append(" combat ").append(override.combatDurationSeconds).append("s");
+				}
+				if (override.fireworkCooldownSeconds != null) {
+					text.append(" firework ").append(override.fireworkCooldownSeconds).append("s");
+				}
+				if (override.fireworkEveryThirdCooldownSeconds != null) {
+					text.append(" every-3rd ").append(override.fireworkEveryThirdCooldownSeconds).append("s");
+				}
+			}
+		}
+		return text.toString();
 	}
 
 	/**

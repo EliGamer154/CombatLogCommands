@@ -58,10 +58,19 @@ Old config files upgrade automatically: any missing settings are added with thei
 
 ## Admin commands
 
-Requires op (permission level 2+):
+Requires op (permission level 2+). Every change is saved to the config file immediately — no restart or reload needed:
 
-- `/combatlog reload` — re-read the config file after editing it by hand (no restart needed).
+- `/combatlog show` — print the current settings.
+- `/combatlog reload` — re-read the config file after editing it by hand.
 - `/combatlog reset` — overwrite the config file with default settings.
+- `/combatlog set combatduration <seconds>` — combat tag length.
+- `/combatlog set backcooldown <seconds>` — the `/back` cooldown.
+- `/combatlog set fireworkcooldown <seconds>` — in-combat firework cooldown.
+- `/combatlog set fireworkthirdcooldown <seconds>` — the longer every-3rd-rocket cooldown.
+- `/combatlog blocked add|remove <command>` — edit the in-combat blocked command list.
+- `/combatlog targetblocked add|remove <command>` — edit the can't-target-someone-in-combat list.
+- `/combatlog player <name> combatduration|fireworkcooldown|fireworkthirdcooldown <seconds>` — set a per-player override.
+- `/combatlog player <name> clear` — remove all of a player's overrides.
 
 ## Requirements
 
