@@ -19,9 +19,11 @@ public class FireworkCooldown {
 	}
 
 	/** Records one in-combat rocket use and returns the cooldown ticks to apply for it. */
-	public static int nextCooldownTicks(UUID id) {
+	public static int nextCooldownTicks(UUID id, String playerName) {
 		int count = rocketsUsed.merge(id, 1, Integer::sum);
 		ModConfig config = ModConfig.get();
-		return count % 3 == 0 ? config.fireworkEveryThirdCooldownTicks() : config.fireworkCooldownTicks();
+		return count % 3 == 0
+				? config.fireworkEveryThirdCooldownTicks(playerName)
+				: config.fireworkCooldownTicks(playerName);
 	}
 }

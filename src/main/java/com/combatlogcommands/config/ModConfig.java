@@ -11,7 +11,9 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Server-side config. Loaded lazily, re-savable via {@code /combatlog reload} and
@@ -28,6 +30,7 @@ public class ModConfig {
 	private double backCooldownSeconds = 30.0;
 	private double fireworkCooldownSeconds = 1.5;
 	private double fireworkEveryThirdCooldownSeconds = 2.5;
+	private Map<String, PlayerOverride> playerOverrides = new HashMap<>();
 
 	// Commands can be dispatched off the main server thread by other mods/panels, and this can be
 	// reached from the very first command check, so the lazy load must not race.
@@ -64,6 +67,9 @@ public class ModConfig {
 					}
 					if (loaded.blockedWhenTargetInCombat == null) {
 						loaded.blockedWhenTargetInCombat = new ArrayList<>();
+					}
+					if (loaded.playerOverrides == null) {
+						loaded.playerOverrides = new HashMap<>();
 					}
 					loaded.save();
 					return loaded;
@@ -108,19 +114,50 @@ public class ModConfig {
 		return false;
 	}
 
-	public long combatDurationMillis() {
-		return (long) (combatDurationSeconds * 1000);
+	public long combatDurationMillis(String playerName) {
+		PlayerOverride override = overrideFor(playerName);
+		double seconds = override != null && override.combatDurationSeconds != null
+				? override.combatDurationSeconds : combatDurationSeconds;
+		return (long) (seconds * 1000);
 	}
 
 	public long backCooldownMillis() {
 		return (long) (backCooldownSeconds * 1000);
 	}
 
-	public int fireworkCooldownTicks() {
-		return (int) Math.round(fireworkCooldownSeconds * 20);
+	public int fireworkCooldownTicks(String playerName) {
+		PlayerOverride override = overrideFor(playerName);
+		double seconds = override != null && override.fireworkCooldownSeconds != null
+				? override.fireworkCooldownSeconds : fireworkCooldownSeconds;
+		return (int) Math.round(seconds * 20);
 	}
 
-	public int fireworkEveryThirdCooldownTicks() {
-		return (int) Math.round(fireworkEveryThirdCooldownSeconds * 20);
+	public int fireworkEveryThirdCooldownTicks(String playerName) {
+		PlayerOverride override = overrideFor(playerName);
+		double seconds = override != null && override.fireworkEveryThirdCooldownSeconds != null
+				? override.fireworkEveryThirdCooldownSeconds : fireworkEveryThirdCooldownSeconds;
+		return (int) Math.round(seconds * 20);
+	}
+
+	private PlayerOverride overrideFor(String playerName) {
+		if (playerName == null) {
+			return null;
+		}
+		for (Map.Entry<String, PlayerOverride> entry : playerOverrides.entrySet()) {
+			if (entry.getKey().equalsIgnoreCase(playerName) && entry.getValue() != null) {
+				return entry.getValue();
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Per-player settings, keyed by player name (case-insensitive). Any field left out of the JSON
+	 * stays null and falls back to the matching global setting.
+	 */
+	public static class PlayerOverride {
+		private Double combatDurationSeconds;
+		private Double fireworkCooldownSeconds;
+		private Double fireworkEveryThirdCooldownSeconds;
 	}
 }

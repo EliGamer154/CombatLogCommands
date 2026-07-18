@@ -33,7 +33,8 @@ On first run, a config file is created at `config/combatlogcommands.json`:
   "combatDurationSeconds": 15.0,
   "backCooldownSeconds": 30.0,
   "fireworkCooldownSeconds": 1.5,
-  "fireworkEveryThirdCooldownSeconds": 2.5
+  "fireworkEveryThirdCooldownSeconds": 2.5,
+  "playerOverrides": {}
 }
 ```
 
@@ -42,8 +43,18 @@ On first run, a config file is created at `config/combatlogcommands.json`:
 - `combatDurationSeconds` — how long the combat tag lasts per hit.
 - `backCooldownSeconds` — the always-on `/back` cooldown.
 - `fireworkCooldownSeconds` / `fireworkEveryThirdCooldownSeconds` — the in-combat firework rocket cooldown, and the longer one applied to every 3rd rocket.
+- `playerOverrides` — per-player settings, keyed by player name (case-insensitive). Each entry may set `combatDurationSeconds`, `fireworkCooldownSeconds`, and/or `fireworkEveryThirdCooldownSeconds`; anything left out falls back to the global value. Example:
 
-Old config files upgrade automatically: any missing settings are added with their defaults on server start, and your existing values are kept.
+```json
+"playerOverrides": {
+  "Steve": {
+    "combatDurationSeconds": 30.0,
+    "fireworkCooldownSeconds": 5.0
+  }
+}
+```
+
+Old config files upgrade automatically: any missing settings are added with their defaults on server start, and your existing values are kept. After editing by hand, apply live with `/combatlog reload`.
 
 ## Admin commands
 

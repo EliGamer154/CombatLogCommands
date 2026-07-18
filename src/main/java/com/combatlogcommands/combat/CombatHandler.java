@@ -81,10 +81,10 @@ public class CombatHandler {
 
 		MinecraftServer server = victim.level().getServer();
 
-		long durationMillis = ModConfig.get().combatDurationMillis();
+		ModConfig config = ModConfig.get();
 		CombatState state = CombatState.get(server);
-		state.tag(attacker.getUUID(), durationMillis);
-		state.tag(victim.getUUID(), durationMillis);
+		state.tag(attacker.getUUID(), config.combatDurationMillis(attacker.getScoreboardName()));
+		state.tag(victim.getUUID(), config.combatDurationMillis(victim.getScoreboardName()));
 	}
 
 	// ServerPlayerEvents.LEAVE fires at the very start of player removal, while the player is still
@@ -149,7 +149,7 @@ public class CombatHandler {
 			return null;
 		}
 
-		int cooldownTicks = FireworkCooldown.nextCooldownTicks(serverPlayer.getUUID());
+		int cooldownTicks = FireworkCooldown.nextCooldownTicks(serverPlayer.getUUID(), serverPlayer.getScoreboardName());
 		serverPlayer.getCooldowns().addCooldown(stack, cooldownTicks);
 		return null;
 	}
