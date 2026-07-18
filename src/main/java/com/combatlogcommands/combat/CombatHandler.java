@@ -1,6 +1,7 @@
 package com.combatlogcommands.combat;
 
 import com.combatlogcommands.CombatLogCommands;
+import com.combatlogcommands.config.ModConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
@@ -80,9 +81,10 @@ public class CombatHandler {
 
 		MinecraftServer server = victim.level().getServer();
 
+		long durationMillis = ModConfig.get().combatDurationMillis();
 		CombatState state = CombatState.get(server);
-		state.tag(attacker.getUUID(), CombatLogCommands.COMBAT_DURATION_MILLIS);
-		state.tag(victim.getUUID(), CombatLogCommands.COMBAT_DURATION_MILLIS);
+		state.tag(attacker.getUUID(), durationMillis);
+		state.tag(victim.getUUID(), durationMillis);
 	}
 
 	// ServerPlayerEvents.LEAVE fires at the very start of player removal, while the player is still

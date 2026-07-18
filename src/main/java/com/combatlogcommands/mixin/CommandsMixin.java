@@ -49,16 +49,31 @@ public class CommandsMixin {
 			return;
 		}
 
-		String label = command.startsWith("/") ? command.substring(1) : command;
-		int spaceIndex = label.indexOf(' ');
-		if (spaceIndex >= 0) {
-			label = label.substring(0, spaceIndex);
-		}
+		String withoutSlash = command.startsWith("/") ? command.substring(1) : command;
+		int spaceIndex = withoutSlash.indexOf(' ');
+		String label = spaceIndex >= 0 ? withoutSlash.substring(0, spaceIndex) : withoutSlash;
 
 		if (CombatState.get(server).isInCombat(player.getUUID()) && ModConfig.get().isBlockedCommand(label)) {
 			source.sendFailure(Component.literal("You can't use /" + label + " during combat.").withStyle(ChatFormatting.RED));
 			ci.cancel();
 			return;
+		}
+
+		// e.g. "/tpa <name>" or "/tpahere <name>" aimed at someone who is mid-fight: refuse to disturb
+		// them regardless of whether the sender is in combat themselves.
+		if (ModConfig.get().isTargetBlockedCommand(label) && spaceIndex >= 0) {
+			String targetName = withoutSlash.substring(spaceIndex + 1).trim();
+			int targetSpace = targetName.indexOf(' ');
+			if (targetSpace >= 0) {
+				targetName = targetName.substring(0, targetSpace);
+			}
+			ServerPlayer target = targetName.isEmpty() ? null : server.getPlayerList().getPlayerByName(targetName);
+			if (target != null && CombatState.get(server).isInCombat(target.getUUID())) {
+				source.sendFailure(Component.literal("You can't send /" + label + " to " + target.getScoreboardName()
+						+ " right now - they are in combat.").withStyle(ChatFormatting.RED));
+				ci.cancel();
+				return;
+			}
 		}
 
 		if (label.equalsIgnoreCase("back")) {

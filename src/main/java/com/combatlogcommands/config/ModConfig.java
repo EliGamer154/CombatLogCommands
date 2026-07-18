@@ -13,12 +13,21 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Server-side config: which commands are blocked while a player is combat-tagged. */
+/**
+ * Server-side config. Loaded lazily, re-savable via {@code /combatlog reload} and
+ * {@code /combatlog reset}. Fields missing from an older config file keep their defaults (Gson only
+ * sets fields present in the JSON) and are written back on load, so old files upgrade in place.
+ */
 public class ModConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static ModConfig instance;
 
 	private List<String> blockedCommands = new ArrayList<>(List.of("back", "tpa", "tpaccept", "home", "spawn", "tpahere"));
+	private List<String> blockedWhenTargetInCombat = new ArrayList<>(List.of("tpa", "tpahere"));
+	private double combatDurationSeconds = 15.0;
+	private double backCooldownSeconds = 30.0;
+	private double fireworkCooldownSeconds = 1.5;
+	private double fireworkEveryThirdCooldownSeconds = 2.5;
 
 	// Commands can be dispatched off the main server thread by other mods/panels, and this can be
 	// reached from the very first command check, so the lazy load must not race.
@@ -27,6 +36,17 @@ public class ModConfig {
 			instance = load();
 		}
 		return instance;
+	}
+
+	/** Re-reads the config file from disk, e.g. after an admin edited it. */
+	public static synchronized void reload() {
+		instance = load();
+	}
+
+	/** Overwrites the config file with default settings. */
+	public static synchronized void reset() {
+		instance = new ModConfig();
+		instance.save();
 	}
 
 	private static Path configPath() {
@@ -42,10 +62,13 @@ public class ModConfig {
 					if (loaded.blockedCommands == null) {
 						loaded.blockedCommands = new ArrayList<>();
 					}
+					if (loaded.blockedWhenTargetInCombat == null) {
+						loaded.blockedWhenTargetInCombat = new ArrayList<>();
+					}
 					loaded.save();
 					return loaded;
 				}
-			} catch (IOException e) {
+			} catch (Exception e) {
 				CombatLogCommands.LOGGER.error("Failed to read combatlogcommands.json, using defaults", e);
 			}
 		}
@@ -68,11 +91,36 @@ public class ModConfig {
 
 	/** Command label without the leading slash, e.g. "back". Matching is case-insensitive. */
 	public boolean isBlockedCommand(String label) {
-		for (String blocked : blockedCommands) {
-			if (blocked.equalsIgnoreCase(label)) {
+		return containsIgnoreCase(blockedCommands, label);
+	}
+
+	/** Commands that can't be used to target a player who is in combat, e.g. "tpa &lt;name&gt;". */
+	public boolean isTargetBlockedCommand(String label) {
+		return containsIgnoreCase(blockedWhenTargetInCombat, label);
+	}
+
+	private static boolean containsIgnoreCase(List<String> list, String value) {
+		for (String entry : list) {
+			if (entry.equalsIgnoreCase(value)) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	public long combatDurationMillis() {
+		return (long) (combatDurationSeconds * 1000);
+	}
+
+	public long backCooldownMillis() {
+		return (long) (backCooldownSeconds * 1000);
+	}
+
+	public int fireworkCooldownTicks() {
+		return (int) Math.round(fireworkCooldownSeconds * 20);
+	}
+
+	public int fireworkEveryThirdCooldownTicks() {
+		return (int) Math.round(fireworkEveryThirdCooldownSeconds * 20);
 	}
 }
