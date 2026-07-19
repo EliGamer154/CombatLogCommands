@@ -53,7 +53,9 @@ public class CombatLogAdminCommand {
 						.then(globalSetting("fireworkcooldown", "firework cooldown",
 								seconds -> ModConfig.get().setFireworkCooldownSeconds(seconds)))
 						.then(globalSetting("fireworkthirdcooldown", "every-3rd firework cooldown",
-								seconds -> ModConfig.get().setFireworkEveryThirdCooldownSeconds(seconds))))
+								seconds -> ModConfig.get().setFireworkEveryThirdCooldownSeconds(seconds)))
+						.then(globalSetting("warmup", "teleport warmup",
+								seconds -> ModConfig.get().setTeleportWarmupSeconds(seconds))))
 				.then(Commands.literal("blocked")
 						.then(Commands.literal("add").then(Commands.argument("command", StringArgumentType.word())
 								.executes(context -> addToList(context, true))))

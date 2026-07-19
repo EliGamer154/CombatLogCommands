@@ -1,6 +1,7 @@
 package com.combatlogcommands;
 
 import com.combatlogcommands.combat.CombatHandler;
+import com.combatlogcommands.combat.TeleportWarmup;
 import com.combatlogcommands.command.CombatLogAdminCommand;
 import com.combatlogcommands.config.ModConfig;
 import net.fabricmc.api.ModInitializer;
@@ -23,6 +24,7 @@ public class CombatLogCommands implements ModInitializer {
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(CombatHandler::onDamage);
 		ServerPlayerEvents.LEAVE.register(CombatHandler::onLeave);
 		ServerTickEvents.END_SERVER_TICK.register(CombatHandler::onServerTick);
+		ServerTickEvents.END_SERVER_TICK.register(TeleportWarmup::onServerTick);
 		ItemEvents.USE.register(CombatHandler::onUseItem);
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> CombatLogAdminCommand.register(dispatcher));
 

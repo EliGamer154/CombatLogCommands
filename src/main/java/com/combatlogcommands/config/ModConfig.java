@@ -33,6 +33,7 @@ public class ModConfig {
 	private double backCooldownSeconds = 30.0;
 	private double fireworkCooldownSeconds = 1.5;
 	private double fireworkEveryThirdCooldownSeconds = 2.5;
+	private double teleportWarmupSeconds = 3.0;
 	private Map<String, PlayerOverride> playerOverrides = new HashMap<>();
 
 	// Commands can be dispatched off the main server thread by other mods/panels, and this can be
@@ -130,6 +131,10 @@ public class ModConfig {
 		return (long) (backCooldownSeconds * 1000);
 	}
 
+	public int teleportWarmupTicks() {
+		return (int) Math.round(teleportWarmupSeconds * 20);
+	}
+
 	public int fireworkCooldownTicks(String playerName) {
 		PlayerOverride override = overrideFor(playerName);
 		double seconds = override != null && override.fireworkCooldownSeconds != null
@@ -175,6 +180,11 @@ public class ModConfig {
 
 	public synchronized void setFireworkEveryThirdCooldownSeconds(double seconds) {
 		fireworkEveryThirdCooldownSeconds = seconds;
+		save();
+	}
+
+	public synchronized void setTeleportWarmupSeconds(double seconds) {
+		teleportWarmupSeconds = seconds;
 		save();
 	}
 
@@ -257,6 +267,7 @@ public class ModConfig {
 		text.append(" | /back cooldown: ").append(backCooldownSeconds).append("s");
 		text.append("\nFirework cooldown: ").append(fireworkCooldownSeconds).append("s");
 		text.append(" (every 3rd: ").append(fireworkEveryThirdCooldownSeconds).append("s)");
+		text.append("\nTeleport warmup: ").append(teleportWarmupSeconds).append("s");
 		text.append("\nBlocked in combat: ").append(String.join(", ", blockedCommands));
 		text.append("\nBlocked when target in combat: ").append(String.join(", ", blockedWhenTargetInCombat));
 		if (playerOverrides.isEmpty()) {

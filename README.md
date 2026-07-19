@@ -11,6 +11,7 @@ A Fabric server-side mod for Minecraft **26.1.2 - 26.2** that adds PvP combat ta
 - If a tagged player disconnects while still in combat, they are killed **immediately**, before the disconnect completes — there's no window to camp offline and dodge the punishment. A visual-only lightning bolt strikes them for effect (no fire, no block/entity damage from it — the kill itself is what does the damage), with the vanilla thunder sound, and everyone sees "**\<player\> has logged out during combat!**" in chat.
 - `/back` also has its own **30-second cooldown**, independent of combat, so it can't be spammed.
 - Firework rockets have a **1.5-second cooldown while in combat** (elytra boosting included), shown as the vanilla ender-pearl-style white bar on the item — no chat spam. Every 3rd rocket, the cooldown stretches to **2.5 seconds**. No cooldown outside combat.
+- Teleports get a **3... 2... 1... countdown** shown as a subtitle: when a `/tpa` or `/tpahere` is accepted, the player who's about to teleport must stand still for 3 seconds (the countdown shows on *their* screen — for `/tpa` that's the requester, for `/tpahere` the accepter). Moving or getting combat-tagged cancels the teleport. On success an ender pearl sound plays. `/back` gets the same countdown, no acceptance needed.
 
 ## Config
 
@@ -34,6 +35,7 @@ On first run, a config file is created at `config/combatlogcommands.json`:
   "backCooldownSeconds": 30.0,
   "fireworkCooldownSeconds": 1.5,
   "fireworkEveryThirdCooldownSeconds": 2.5,
+  "teleportWarmupSeconds": 3.0,
   "playerOverrides": {}
 }
 ```
@@ -67,6 +69,7 @@ Requires op (permission level 2+). Every change is saved to the config file imme
 - `/combatlog set backcooldown <seconds>` — the `/back` cooldown.
 - `/combatlog set fireworkcooldown <seconds>` — in-combat firework cooldown.
 - `/combatlog set fireworkthirdcooldown <seconds>` — the longer every-3rd-rocket cooldown.
+- `/combatlog set warmup <seconds>` — the teleport countdown length.
 - `/combatlog blocked add|remove <command>` — edit the in-combat blocked command list.
 - `/combatlog targetblocked add|remove <command>` — edit the can't-target-someone-in-combat list.
 - `/combatlog player <name> combatduration|fireworkcooldown|fireworkthirdcooldown <seconds>` — set a per-player override.

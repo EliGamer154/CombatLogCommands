@@ -3,6 +3,8 @@ package com.combatlogcommands.mixin;
 import com.combatlogcommands.CombatLogCommands;
 import com.combatlogcommands.combat.BackCooldown;
 import com.combatlogcommands.combat.CombatState;
+import com.combatlogcommands.combat.TeleportWarmup;
+import com.combatlogcommands.combat.TpaRequests;
 import com.combatlogcommands.config.ModConfig;
 import com.mojang.brigadier.ParseResults;
 import net.minecraft.ChatFormatting;
@@ -49,9 +51,15 @@ public class CommandsMixin {
 			return;
 		}
 
+		// A command we held for a teleport countdown and are now re-dispatching ourselves.
+		if (TeleportWarmup.consumeBypass(player.getUUID())) {
+			return;
+		}
+
 		String withoutSlash = command.startsWith("/") ? command.substring(1) : command;
 		int spaceIndex = withoutSlash.indexOf(' ');
 		String label = spaceIndex >= 0 ? withoutSlash.substring(0, spaceIndex) : withoutSlash;
+		String firstArg = combatlogcommands$firstArg(withoutSlash, spaceIndex);
 
 		if (CombatState.get(server).isInCombat(player.getUUID()) && ModConfig.get().isBlockedCommand(label)) {
 			source.sendFailure(Component.literal("You can't use /" + label + " during combat.").withStyle(ChatFormatting.RED));
@@ -61,19 +69,49 @@ public class CommandsMixin {
 
 		// e.g. "/tpa <name>" or "/tpahere <name>" aimed at someone who is mid-fight: refuse to disturb
 		// them regardless of whether the sender is in combat themselves.
-		if (ModConfig.get().isTargetBlockedCommand(label) && spaceIndex >= 0) {
-			String targetName = withoutSlash.substring(spaceIndex + 1).trim();
-			int targetSpace = targetName.indexOf(' ');
-			if (targetSpace >= 0) {
-				targetName = targetName.substring(0, targetSpace);
-			}
-			ServerPlayer target = targetName.isEmpty() ? null : server.getPlayerList().getPlayerByName(targetName);
+		if (ModConfig.get().isTargetBlockedCommand(label) && firstArg != null) {
+			ServerPlayer target = server.getPlayerList().getPlayerByName(firstArg);
 			if (target != null && CombatState.get(server).isInCombat(target.getUUID())) {
 				source.sendFailure(Component.literal("You can't send /" + label + " to " + target.getScoreboardName()
 						+ " right now - they are in combat.").withStyle(ChatFormatting.RED));
 				ci.cancel();
 				return;
 			}
+		}
+
+		// Record outgoing teleport requests so a later /tpaccept knows who would teleport.
+		if ((label.equalsIgnoreCase("tpa") || label.equalsIgnoreCase("tpahere")) && firstArg != null) {
+			ServerPlayer target = server.getPlayerList().getPlayerByName(firstArg);
+			if (target != null) {
+				TpaRequests.Type type = label.equalsIgnoreCase("tpa") ? TpaRequests.Type.TPA : TpaRequests.Type.TPAHERE;
+				TpaRequests.record(target.getUUID(), player.getUUID(), player.getScoreboardName(), type);
+			}
+			return;
+		}
+
+		if (label.equalsIgnoreCase("tpdeny")) {
+			TpaRequests.clear(player.getUUID());
+			return;
+		}
+
+		if (label.equalsIgnoreCase("tpaccept")) {
+			TpaRequests.Request request = TpaRequests.find(player.getUUID(), firstArg);
+			if (request == null) {
+				// Nothing recorded (request predates us or came from an unknown path): let the
+				// providing mod handle it directly, without a countdown.
+				return;
+			}
+			// For /tpa the REQUESTER teleports to the accepter; for /tpahere the accepter teleports.
+			ServerPlayer teleporting = request.type() == TpaRequests.Type.TPA
+					? server.getPlayerList().getPlayer(request.requesterId())
+					: player;
+			if (teleporting == null) {
+				return;
+			}
+			ci.cancel();
+			TeleportWarmup.begin(teleporting, player, source, command, ModConfig.get().teleportWarmupTicks(),
+					() -> TpaRequests.consume(player.getUUID(), request));
+			return;
 		}
 
 		if (label.equalsIgnoreCase("back")) {
@@ -84,7 +122,22 @@ public class CommandsMixin {
 				ci.cancel();
 				return;
 			}
-			BackCooldown.use(player.getUUID());
+			// Hold the command for the countdown; the cooldown only starts if the teleport goes through.
+			ci.cancel();
+			TeleportWarmup.begin(player, player, source, command, ModConfig.get().teleportWarmupTicks(),
+					() -> BackCooldown.use(player.getUUID()));
 		}
+	}
+
+	private static String combatlogcommands$firstArg(String withoutSlash, int spaceIndex) {
+		if (spaceIndex < 0) {
+			return null;
+		}
+		String rest = withoutSlash.substring(spaceIndex + 1).trim();
+		if (rest.isEmpty()) {
+			return null;
+		}
+		int nextSpace = rest.indexOf(' ');
+		return nextSpace >= 0 ? rest.substring(0, nextSpace) : rest;
 	}
 }
