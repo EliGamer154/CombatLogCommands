@@ -137,5 +137,9 @@ public class TeleportWarmup {
 		player.connection.send(new ClientboundSetTitleTextPacket(Component.literal("")));
 		player.connection.send(new ClientboundSetSubtitleTextPacket(
 				Component.literal(secondsLeft + "...").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)));
+		// A pearl sound per count, pitched up as it approaches zero: 3 -> 0.8, 2 -> 1.0, 1 -> 1.2.
+		float pitch = 1.4f - 0.2f * secondsLeft;
+		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+				SoundEvents.ENDER_PEARL_THROW, SoundSource.PLAYERS, 1.0f, pitch);
 	}
 }
