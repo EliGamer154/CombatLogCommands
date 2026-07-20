@@ -19,7 +19,7 @@ The mod takes over `/tpa`, `/tpahere`, `/tpaccept`, and `/tpdeny` so teleports f
 - Sending `/tpa <player>` or `/tpahere <player>` does **not** spam chat. The target instead gets an **action-bar notice with a chime sound** (re-shown every few seconds while the request is pending), and the sender sees a confirmation.
 - The target accepts by running `/tpaccept`, which opens a small **menu of pending requests** (each shown as the requester's head) — click one to accept it. `/tpdeny` clears all pending requests.
 - On accept, a **3... 2... 1... countdown** appears on the action bar (same spot as the combat timer) for **both** players, with an ascending pearl sound on each count. The player who's about to teleport must stand still; **moving or entering combat cancels** it for both. On success they teleport with an ender pearl sound.
-- Self-teleport commands like `/back` and `/rtp` get the same countdown (no acceptance needed) — which commands do is configurable.
+- Self-teleport commands like `/back`, `/rtp`, and `/home` get the same countdown (no acceptance needed) — which commands do is configurable.
 
 ## Config
 
@@ -42,7 +42,8 @@ On first run, a config file is created at `config/combatlogcommands.json`:
   ],
   "warmupCommands": [
     "back",
-    "rtp"
+    "rtp",
+    "home"
   ],
   "combatDurationSeconds": 15.0,
   "backCooldownSeconds": 30.0,

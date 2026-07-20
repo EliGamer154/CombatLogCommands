@@ -30,7 +30,7 @@ public class ModConfig {
 	private List<String> blockedCommands = new ArrayList<>(List.of("back", "tpa", "tpaccept", "home", "spawn", "tpahere", "rtp"));
 	private List<String> blockedWhenTargetInCombat = new ArrayList<>(List.of("tpa", "tpahere"));
 	// Self-teleport commands (no acceptance needed) that get held for the 3-2-1 countdown, then re-run.
-	private List<String> warmupCommands = new ArrayList<>(List.of("back", "rtp"));
+	private List<String> warmupCommands = new ArrayList<>(List.of("back", "rtp", "home"));
 	private double combatDurationSeconds = 15.0;
 	private double backCooldownSeconds = 30.0;
 	private double fireworkCooldownSeconds = 1.5;
