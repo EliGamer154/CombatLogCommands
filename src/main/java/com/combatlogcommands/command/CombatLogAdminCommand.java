@@ -56,16 +56,9 @@ public class CombatLogAdminCommand {
 								seconds -> ModConfig.get().setFireworkEveryThirdCooldownSeconds(seconds)))
 						.then(globalSetting("warmup", "teleport warmup",
 								seconds -> ModConfig.get().setTeleportWarmupSeconds(seconds))))
-				.then(Commands.literal("blocked")
-						.then(Commands.literal("add").then(Commands.argument("command", StringArgumentType.word())
-								.executes(context -> addToList(context, true))))
-						.then(Commands.literal("remove").then(Commands.argument("command", StringArgumentType.word())
-								.executes(context -> removeFromList(context, true)))))
-				.then(Commands.literal("targetblocked")
-						.then(Commands.literal("add").then(Commands.argument("command", StringArgumentType.word())
-								.executes(context -> addToList(context, false))))
-						.then(Commands.literal("remove").then(Commands.argument("command", StringArgumentType.word())
-								.executes(context -> removeFromList(context, false)))))
+				.then(listEditor("blocked", ListKind.BLOCKED))
+				.then(listEditor("targetblocked", ListKind.TARGET_BLOCKED))
+				.then(listEditor("warmupcmd", ListKind.WARMUP))
 				.then(Commands.literal("player")
 						.then(Commands.argument("name", StringArgumentType.word())
 								.then(playerSetting("combatduration", "combat duration",
@@ -117,31 +110,60 @@ public class CombatLogAdminCommand {
 						}));
 	}
 
-	private static int addToList(CommandContext<CommandSourceStack> context, boolean senderList) {
+	private enum ListKind {
+		BLOCKED("combat-blocked commands"),
+		TARGET_BLOCKED("target-blocked commands"),
+		WARMUP("countdown commands");
+
+		final String label;
+
+		ListKind(String label) {
+			this.label = label;
+		}
+
+		boolean add(String command) {
+			return switch (this) {
+				case BLOCKED -> ModConfig.get().addBlockedCommand(command);
+				case TARGET_BLOCKED -> ModConfig.get().addTargetBlockedCommand(command);
+				case WARMUP -> ModConfig.get().addWarmupCommand(command);
+			};
+		}
+
+		boolean remove(String command) {
+			return switch (this) {
+				case BLOCKED -> ModConfig.get().removeBlockedCommand(command);
+				case TARGET_BLOCKED -> ModConfig.get().removeTargetBlockedCommand(command);
+				case WARMUP -> ModConfig.get().removeWarmupCommand(command);
+			};
+		}
+	}
+
+	private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> listEditor(
+			String literal, ListKind kind) {
+		return Commands.literal(literal)
+				.then(Commands.literal("add").then(Commands.argument("command", StringArgumentType.word())
+						.executes(context -> addToList(context, kind))))
+				.then(Commands.literal("remove").then(Commands.argument("command", StringArgumentType.word())
+						.executes(context -> removeFromList(context, kind))));
+	}
+
+	private static int addToList(CommandContext<CommandSourceStack> context, ListKind kind) {
 		String command = StringArgumentType.getString(context, "command");
-		boolean added = senderList
-				? ModConfig.get().addBlockedCommand(command)
-				: ModConfig.get().addTargetBlockedCommand(command);
-		String listName = senderList ? "combat-blocked commands" : "target-blocked commands";
-		if (added) {
-			context.getSource().sendSuccess(() -> Component.literal("Added /" + command + " to " + listName + "."), true);
+		if (kind.add(command)) {
+			context.getSource().sendSuccess(() -> Component.literal("Added /" + command + " to " + kind.label + "."), true);
 			return 1;
 		}
-		context.getSource().sendFailure(Component.literal("/" + command + " is already in " + listName + "."));
+		context.getSource().sendFailure(Component.literal("/" + command + " is already in " + kind.label + "."));
 		return 0;
 	}
 
-	private static int removeFromList(CommandContext<CommandSourceStack> context, boolean senderList) {
+	private static int removeFromList(CommandContext<CommandSourceStack> context, ListKind kind) {
 		String command = StringArgumentType.getString(context, "command");
-		boolean removed = senderList
-				? ModConfig.get().removeBlockedCommand(command)
-				: ModConfig.get().removeTargetBlockedCommand(command);
-		String listName = senderList ? "combat-blocked commands" : "target-blocked commands";
-		if (removed) {
-			context.getSource().sendSuccess(() -> Component.literal("Removed /" + command + " from " + listName + "."), true);
+		if (kind.remove(command)) {
+			context.getSource().sendSuccess(() -> Component.literal("Removed /" + command + " from " + kind.label + "."), true);
 			return 1;
 		}
-		context.getSource().sendFailure(Component.literal("/" + command + " is not in " + listName + "."));
+		context.getSource().sendFailure(Component.literal("/" + command + " is not in " + kind.label + "."));
 		return 0;
 	}
 }

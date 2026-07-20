@@ -4,8 +4,10 @@ import com.combatlogcommands.CombatLogCommands;
 import com.combatlogcommands.combat.BackCooldown;
 import com.combatlogcommands.combat.CombatState;
 import com.combatlogcommands.combat.TeleportWarmup;
+import com.combatlogcommands.combat.TpaManager;
 import com.combatlogcommands.combat.TpaRequests;
 import com.combatlogcommands.config.ModConfig;
+import com.combatlogcommands.gui.TpaRequestsMenu;
 import com.mojang.brigadier.ParseResults;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -18,12 +20,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.UUID;
+
 /**
  * Every command dispatch - chat-typed, prefixed, command blocks, functions - funnels through
  * {@link Commands#performCommand}, regardless of which mod registered the command. Intercepting here
- * lets us block the configured escape commands for any mod's command, not just ones this mod knows about.
- * (performPrefixedCommand is not the right target: it just strips a leading "/" and delegates here -
- * the normal player chat-command path calls this method directly.)
+ * lets us block the configured escape commands for any mod's command, and fully take over the
+ * /tpa //tpahere //tpaccept //tpdeny flow (cancelled here and handled by {@code TpaManager} instead
+ * of whatever mod registered them, so requests can be silent + action-bar based with a menu accept).
  */
 @Mixin(Commands.class)
 public class CommandsMixin {
@@ -79,53 +83,69 @@ public class CommandsMixin {
 			}
 		}
 
-		// Record outgoing teleport requests so a later /tpaccept knows who would teleport.
-		if ((label.equalsIgnoreCase("tpa") || label.equalsIgnoreCase("tpahere")) && firstArg != null) {
-			ServerPlayer target = server.getPlayerList().getPlayerByName(firstArg);
-			if (target != null) {
-				TpaRequests.Type type = label.equalsIgnoreCase("tpa") ? TpaRequests.Type.TPA : TpaRequests.Type.TPAHERE;
-				TpaRequests.record(target.getUUID(), player.getUUID(), player.getScoreboardName(), type);
+		// From here on the teleport-request flow is entirely ours; the providing mod never sees it.
+		if (label.equalsIgnoreCase("tpa") || label.equalsIgnoreCase("tpahere")) {
+			ci.cancel();
+			if (firstArg == null) {
+				source.sendFailure(Component.literal("Usage: /" + label.toLowerCase() + " <player>").withStyle(ChatFormatting.RED));
+				return;
 			}
+			ServerPlayer target = server.getPlayerList().getPlayerByName(firstArg);
+			if (target == null) {
+				source.sendFailure(Component.literal("Player not found: " + firstArg).withStyle(ChatFormatting.RED));
+				return;
+			}
+			if (target == player) {
+				source.sendFailure(Component.literal("You can't send a teleport request to yourself.").withStyle(ChatFormatting.RED));
+				return;
+			}
+			TpaRequests.Type type = label.equalsIgnoreCase("tpa") ? TpaRequests.Type.TPA : TpaRequests.Type.TPAHERE;
+			TpaManager.request(server, player, target, type);
 			return;
 		}
 
 		if (label.equalsIgnoreCase("tpdeny")) {
-			TpaRequests.clear(player.getUUID());
+			ci.cancel();
+			TpaManager.deny(player);
 			return;
 		}
 
 		if (label.equalsIgnoreCase("tpaccept")) {
-			TpaRequests.Request request = TpaRequests.find(player.getUUID(), firstArg);
-			if (request == null) {
-				// Nothing recorded (request predates us or came from an unknown path): let the
-				// providing mod handle it directly, without a countdown.
-				return;
-			}
-			// For /tpa the REQUESTER teleports to the accepter; for /tpahere the accepter teleports.
-			ServerPlayer teleporting = request.type() == TpaRequests.Type.TPA
-					? server.getPlayerList().getPlayer(request.requesterId())
-					: player;
-			if (teleporting == null) {
-				return;
-			}
 			ci.cancel();
-			TeleportWarmup.begin(teleporting, player, source, command, ModConfig.get().teleportWarmupTicks(),
-					() -> TpaRequests.consume(player.getUUID(), request));
+			if (TpaRequests.pending(player.getUUID()).isEmpty()) {
+				TeleportWarmup.actionBar(player, Component.literal("You have no pending teleport requests.").withStyle(ChatFormatting.RED));
+				return;
+			}
+			TpaRequestsMenu.open(player);
 			return;
 		}
 
-		if (label.equalsIgnoreCase("back")) {
-			long remainingMs = BackCooldown.remainingMillis(player.getUUID());
-			if (remainingMs > 0) {
-				long remainingSeconds = (remainingMs + 999) / 1000;
-				source.sendFailure(Component.literal("You must wait " + remainingSeconds + "s before using /back again.").withStyle(ChatFormatting.RED));
-				ci.cancel();
-				return;
+		// Self-teleport commands (/back, /rtp, ...): hold for the countdown, then re-dispatch to the
+		// providing mod. /back additionally has its own cooldown, checked and consumed here.
+		if (ModConfig.get().isWarmupCommand(label)) {
+			boolean isBack = label.equalsIgnoreCase("back");
+			if (isBack) {
+				long remainingMs = BackCooldown.remainingMillis(player.getUUID());
+				if (remainingMs > 0) {
+					long remainingSeconds = (remainingMs + 999) / 1000;
+					source.sendFailure(Component.literal("You must wait " + remainingSeconds + "s before using /back again.").withStyle(ChatFormatting.RED));
+					ci.cancel();
+					return;
+				}
 			}
-			// Hold the command for the countdown; the cooldown only starts if the teleport goes through.
+			// The cooldown only starts if the teleport actually goes through.
 			ci.cancel();
-			TeleportWarmup.begin(player, player, source, command, ModConfig.get().teleportWarmupTicks(),
-					() -> BackCooldown.use(player.getUUID()));
+			UUID playerId = player.getUUID();
+			TeleportWarmup.begin(player, null, ModConfig.get().teleportWarmupTicks(), () -> {
+				if (isBack) {
+					BackCooldown.use(playerId);
+				}
+				TeleportWarmup.redispatchWithBypass(server, source, playerId, command);
+				ServerPlayer arrived = server.getPlayerList().getPlayer(playerId);
+				if (arrived != null) {
+					TeleportWarmup.playArrivalSound(arrived);
+				}
+			});
 		}
 	}
 

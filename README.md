@@ -6,12 +6,20 @@ A Fabric server-side mod for Minecraft **26.1.2 - 26.2** that adds PvP combat ta
 
 - Hitting another player, or being hit by one, puts **both** players in combat for **15 seconds**. Landing another hit refreshes the timer back to 15 seconds for both players involved.
 - While in combat, a small red "Combat Tag: Xs" countdown is shown at the bottom of the screen (the action bar).
-- While in combat, players can't use `/back`, `/tpa`, `/tpaccept`, `/home`, `/spawn`, or `/tpahere` (or any other command listed in the config) — attempting to do so sends a warning in chat and cancels the command, regardless of which mod added it.
+- While in combat, players can't use `/back`, `/tpa`, `/tpaccept`, `/home`, `/spawn`, `/tpahere`, or `/rtp` (or any other command listed in the config) — attempting to do so sends a warning in chat and cancels the command, regardless of which mod added it.
 - Players also can't send `/tpa <name>` or `/tpahere <name>` **to** someone who is currently in combat — the sender gets a warning that the target is mid-fight.
 - If a tagged player disconnects while still in combat, they are killed **immediately**, before the disconnect completes — there's no window to camp offline and dodge the punishment. A visual-only lightning bolt strikes them for effect (no fire, no block/entity damage from it — the kill itself is what does the damage), with the vanilla thunder sound, and everyone sees "**\<player\> has logged out during combat!**" in chat.
 - `/back` also has its own **30-second cooldown**, independent of combat, so it can't be spammed.
 - Firework rockets have a **1.5-second cooldown while in combat** (elytra boosting included), shown as the vanilla ender-pearl-style white bar on the item — no chat spam. Every 3rd rocket, the cooldown stretches to **2.5 seconds**. No cooldown outside combat.
-- Teleports get a **3... 2... 1... countdown** shown as a subtitle: when a `/tpa` or `/tpahere` is accepted, the player who's about to teleport must stand still for 3 seconds (the countdown shows on *their* screen — for `/tpa` that's the requester, for `/tpahere` the accepter). Moving or getting combat-tagged cancels the teleport. On success an ender pearl sound plays. `/back` gets the same countdown, no acceptance needed.
+
+### Teleport requests & countdowns
+
+The mod takes over `/tpa`, `/tpahere`, `/tpaccept`, and `/tpdeny` so teleports feel deliberate and can't be used to bail out of a fight:
+
+- Sending `/tpa <player>` or `/tpahere <player>` does **not** spam chat. The target instead gets an **action-bar notice with a chime sound** (re-shown every few seconds while the request is pending), and the sender sees a confirmation.
+- The target accepts by running `/tpaccept`, which opens a small **menu of pending requests** (each shown as the requester's head) — click one to accept it. `/tpdeny` clears all pending requests.
+- On accept, a **3... 2... 1... countdown** appears on the action bar (same spot as the combat timer) for **both** players, with an ascending pearl sound on each count. The player who's about to teleport must stand still; **moving or entering combat cancels** it for both. On success they teleport with an ender pearl sound.
+- Self-teleport commands like `/back` and `/rtp` get the same countdown (no acceptance needed) — which commands do is configurable.
 
 ## Config
 
@@ -25,11 +33,16 @@ On first run, a config file is created at `config/combatlogcommands.json`:
     "tpaccept",
     "home",
     "spawn",
-    "tpahere"
+    "tpahere",
+    "rtp"
   ],
   "blockedWhenTargetInCombat": [
     "tpa",
     "tpahere"
+  ],
+  "warmupCommands": [
+    "back",
+    "rtp"
   ],
   "combatDurationSeconds": 15.0,
   "backCooldownSeconds": 30.0,
@@ -42,6 +55,7 @@ On first run, a config file is created at `config/combatlogcommands.json`:
 
 - `blockedCommands` — commands a combat-tagged player can't use (no leading slash, case-insensitive).
 - `blockedWhenTargetInCombat` — commands that can't be sent **at** a player who is in combat (first argument is treated as the target's name).
+- `warmupCommands` — self-teleport commands (no acceptance needed) that get held for the 3-2-1 countdown before running.
 - `combatDurationSeconds` — how long the combat tag lasts per hit.
 - `backCooldownSeconds` — the always-on `/back` cooldown.
 - `fireworkCooldownSeconds` / `fireworkEveryThirdCooldownSeconds` — the in-combat firework rocket cooldown, and the longer one applied to every 3rd rocket.
@@ -72,6 +86,7 @@ Requires op (permission level 2+). Every change is saved to the config file imme
 - `/combatlog set warmup <seconds>` — the teleport countdown length.
 - `/combatlog blocked add|remove <command>` — edit the in-combat blocked command list.
 - `/combatlog targetblocked add|remove <command>` — edit the can't-target-someone-in-combat list.
+- `/combatlog warmupcmd add|remove <command>` — edit the list of self-teleport commands that get the countdown.
 - `/combatlog player <name> combatduration|fireworkcooldown|fireworkthirdcooldown <seconds>` — set a per-player override.
 - `/combatlog player <name> clear` — remove all of a player's overrides.
 

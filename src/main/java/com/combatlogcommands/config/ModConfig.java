@@ -27,8 +27,10 @@ public class ModConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static ModConfig instance;
 
-	private List<String> blockedCommands = new ArrayList<>(List.of("back", "tpa", "tpaccept", "home", "spawn", "tpahere"));
+	private List<String> blockedCommands = new ArrayList<>(List.of("back", "tpa", "tpaccept", "home", "spawn", "tpahere", "rtp"));
 	private List<String> blockedWhenTargetInCombat = new ArrayList<>(List.of("tpa", "tpahere"));
+	// Self-teleport commands (no acceptance needed) that get held for the 3-2-1 countdown, then re-run.
+	private List<String> warmupCommands = new ArrayList<>(List.of("back", "rtp"));
 	private double combatDurationSeconds = 15.0;
 	private double backCooldownSeconds = 30.0;
 	private double fireworkCooldownSeconds = 1.5;
@@ -86,6 +88,7 @@ public class ModConfig {
 	private void makeThreadSafe() {
 		blockedCommands = new CopyOnWriteArrayList<>(blockedCommands == null ? List.of() : blockedCommands);
 		blockedWhenTargetInCombat = new CopyOnWriteArrayList<>(blockedWhenTargetInCombat == null ? List.of() : blockedWhenTargetInCombat);
+		warmupCommands = new CopyOnWriteArrayList<>(warmupCommands == null ? List.of() : warmupCommands);
 		playerOverrides = new ConcurrentHashMap<>(playerOverrides == null ? Map.of() : playerOverrides);
 	}
 
@@ -109,6 +112,11 @@ public class ModConfig {
 	/** Commands that can't be used to target a player who is in combat, e.g. "tpa &lt;name&gt;". */
 	public boolean isTargetBlockedCommand(String label) {
 		return containsIgnoreCase(blockedWhenTargetInCombat, label);
+	}
+
+	/** Self-teleport commands that get held for the 3-2-1 countdown before running, e.g. "back", "rtp". */
+	public boolean isWarmupCommand(String label) {
+		return containsIgnoreCase(warmupCommands, label);
 	}
 
 	private static boolean containsIgnoreCase(List<String> list, String value) {
@@ -226,6 +234,25 @@ public class ModConfig {
 		return removed;
 	}
 
+	/** Returns false if the command was already in the list. */
+	public synchronized boolean addWarmupCommand(String command) {
+		if (containsIgnoreCase(warmupCommands, command)) {
+			return false;
+		}
+		warmupCommands.add(command.toLowerCase(Locale.ROOT));
+		save();
+		return true;
+	}
+
+	/** Returns false if the command was not in the list. */
+	public synchronized boolean removeWarmupCommand(String command) {
+		boolean removed = warmupCommands.removeIf(entry -> entry.equalsIgnoreCase(command));
+		if (removed) {
+			save();
+		}
+		return removed;
+	}
+
 	public synchronized void setPlayerCombatDuration(String playerName, double seconds) {
 		overrideOrCreate(playerName).combatDurationSeconds = seconds;
 		save();
@@ -270,6 +297,7 @@ public class ModConfig {
 		text.append("\nTeleport warmup: ").append(teleportWarmupSeconds).append("s");
 		text.append("\nBlocked in combat: ").append(String.join(", ", blockedCommands));
 		text.append("\nBlocked when target in combat: ").append(String.join(", ", blockedWhenTargetInCombat));
+		text.append("\nWarmup (countdown) commands: ").append(String.join(", ", warmupCommands));
 		if (playerOverrides.isEmpty()) {
 			text.append("\nPlayer overrides: none");
 		} else {

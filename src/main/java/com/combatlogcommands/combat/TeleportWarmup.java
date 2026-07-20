@@ -4,9 +4,7 @@ import com.combatlogcommands.CombatLogCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -19,11 +17,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The 3... 2... 1... teleport countdown. A held command (/tpaccept or /back) is cancelled at
- * dispatch, and while the player who is about to teleport stands still, a subtitle counts down each
- * second. When it reaches zero the original command is re-dispatched (with a bypass so our mixin
- * lets it through) and an ender pearl sound plays; if the watched player moves or gets
- * combat-tagged first, the teleport is cancelled and nothing is dispatched.
+ * The 3... 2... 1... teleport countdown, shown as small action-bar text (same spot as the combat
+ * timer) with a pearl sound per count. The watched player is the one who will teleport and must
+ * stand still; the optional observer (the other party of a tpa/tpahere) sees the same countdown.
+ * Moving, entering combat, or either party logging out cancels; when the count reaches zero the
+ * {@code onComplete} action runs (a direct teleport for tpa flows, a held-command re-dispatch for
+ * /back).
  */
 public class TeleportWarmup {
 	/** Squared blocks of drift allowed before it counts as "moved" (0.15 blocks). */
@@ -31,22 +30,17 @@ public class TeleportWarmup {
 
 	private static class Pending {
 		final UUID watchedId;
-		final UUID dispatcherId;
-		final CommandSourceStack dispatchSource;
-		final String command;
+		final UUID observerId;
 		final Vec3 startPos;
-		final Runnable onSuccess;
+		final Runnable onComplete;
 		int ticksRemaining;
 
-		Pending(ServerPlayer watched, UUID dispatcherId, CommandSourceStack dispatchSource, String command,
-				int ticksRemaining, Runnable onSuccess) {
+		Pending(ServerPlayer watched, UUID observerId, int ticksRemaining, Runnable onComplete) {
 			this.watchedId = watched.getUUID();
-			this.dispatcherId = dispatcherId;
-			this.dispatchSource = dispatchSource;
-			this.command = command;
+			this.observerId = observerId;
 			this.startPos = watched.position();
 			this.ticksRemaining = ticksRemaining;
-			this.onSuccess = onSuccess;
+			this.onComplete = onComplete;
 		}
 	}
 
@@ -56,22 +50,51 @@ public class TeleportWarmup {
 	private TeleportWarmup() {
 	}
 
-	/**
-	 * Starts (or restarts) a countdown. {@code watched} is the player who will teleport and must
-	 * stand still; {@code dispatchSource}/{@code command} is the original command to re-dispatch on
-	 * success, on behalf of whoever typed it (not necessarily the watched player - for /tpa it's the
-	 * accepter). {@code onSuccess} runs just before the re-dispatch.
-	 */
-	public static void begin(ServerPlayer watched, ServerPlayer dispatcher, CommandSourceStack dispatchSource,
-			String command, int warmupTicks, Runnable onSuccess) {
-		pendingByWatched.put(watched.getUUID(),
-				new Pending(watched, dispatcher.getUUID(), dispatchSource, command, warmupTicks, onSuccess));
-		showCount(watched, (warmupTicks + 19) / 20);
+	public static void begin(ServerPlayer watched, ServerPlayer observerOrNull, int warmupTicks, Runnable onComplete) {
+		UUID observerId = observerOrNull == null ? null : observerOrNull.getUUID();
+		pendingByWatched.put(watched.getUUID(), new Pending(watched, observerId, warmupTicks, onComplete));
+		int seconds = (warmupTicks + 19) / 20;
+		showCount(watched, seconds);
+		if (observerOrNull != null) {
+			showCount(observerOrNull, seconds);
+		}
+	}
+
+	/** True while the player is part of any active countdown, as the teleporter or the other party. */
+	public static boolean isCountingDown(UUID playerId) {
+		if (pendingByWatched.containsKey(playerId)) {
+			return true;
+		}
+		for (Pending pending : pendingByWatched.values()) {
+			if (playerId.equals(pending.observerId)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** True exactly once per re-dispatched command: tells the mixin to let it straight through. */
 	public static boolean consumeBypass(UUID dispatcherId) {
 		return bypassNextCommand.remove(dispatcherId);
+	}
+
+	/** Re-runs a held command as its original sender, bypassing our own interception once. */
+	public static void redispatchWithBypass(MinecraftServer server, CommandSourceStack source, UUID dispatcherId, String command) {
+		bypassNextCommand.add(dispatcherId);
+		try {
+			server.getCommands().performPrefixedCommand(source, command);
+		} finally {
+			bypassNextCommand.remove(dispatcherId);
+		}
+	}
+
+	public static void playArrivalSound(ServerPlayer player) {
+		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+				SoundEvents.ENDER_PEARL_THROW, SoundSource.PLAYERS, 1.0f, 1.0f);
+	}
+
+	public static void actionBar(ServerPlayer player, Component text) {
+		player.connection.send(new ClientboundSetActionBarTextPacket(text));
 	}
 
 	public static void onServerTick(MinecraftServer server) {
@@ -87,56 +110,67 @@ public class TeleportWarmup {
 			ServerPlayer watched = server.getPlayerList().getPlayer(pending.watchedId);
 			if (watched == null) {
 				pendingByWatched.remove(pending.watchedId);
+				notifyCancel(server, pending.observerId, "the other player left");
+				continue;
+			}
+
+			ServerPlayer observer = pending.observerId == null ? null : server.getPlayerList().getPlayer(pending.observerId);
+			if (pending.observerId != null && observer == null) {
+				cancel(pending, watched, null, "the other player left", "");
 				continue;
 			}
 
 			if (watched.position().distanceToSqr(pending.startPos) > MOVE_TOLERANCE_SQ) {
-				cancel(server, pending, watched, "you moved", watched.getScoreboardName() + " moved");
+				cancel(pending, watched, observer, "you moved", watched.getScoreboardName() + " moved");
 				continue;
 			}
 
-			if (CombatState.get(server).isInCombat(pending.watchedId)) {
-				cancel(server, pending, watched, "you entered combat", watched.getScoreboardName() + " entered combat");
+			CombatState combat = CombatState.get(server);
+			if (combat.isInCombat(pending.watchedId)) {
+				cancel(pending, watched, observer, "you entered combat", watched.getScoreboardName() + " entered combat");
+				continue;
+			}
+			if (observer != null && combat.isInCombat(pending.observerId)) {
+				cancel(pending, watched, observer, observer.getScoreboardName() + " entered combat", "you entered combat");
 				continue;
 			}
 
 			pending.ticksRemaining--;
 			if (pending.ticksRemaining <= 0) {
 				pendingByWatched.remove(pending.watchedId);
-				pending.onSuccess.run();
-				bypassNextCommand.add(pending.dispatcherId);
-				server.getCommands().performPrefixedCommand(pending.dispatchSource, pending.command);
-				bypassNextCommand.remove(pending.dispatcherId);
-				watched.level().playSound(null, watched.getX(), watched.getY(), watched.getZ(),
-						SoundEvents.ENDER_PEARL_THROW, SoundSource.PLAYERS, 1.0f, 1.0f);
+				pending.onComplete.run();
 			} else if (pending.ticksRemaining % 20 == 0) {
-				showCount(watched, pending.ticksRemaining / 20);
+				int seconds = pending.ticksRemaining / 20;
+				showCount(watched, seconds);
+				if (observer != null) {
+					showCount(observer, seconds);
+				}
 			}
 		}
 	}
 
-	private static void cancel(MinecraftServer server, Pending pending, ServerPlayer watched,
-			String reasonForWatched, String reasonForDispatcher) {
+	private static void cancel(Pending pending, ServerPlayer watched, ServerPlayer observer,
+			String reasonForWatched, String reasonForObserver) {
 		pendingByWatched.remove(pending.watchedId);
-		watched.connection.send(new ClientboundSetSubtitleTextPacket(
-				Component.literal("Teleport cancelled!").withStyle(ChatFormatting.RED)));
-		watched.connection.send(new ClientboundSetTitleTextPacket(Component.literal("")));
-		watched.sendSystemMessage(Component.literal("Teleport cancelled - " + reasonForWatched + ".").withStyle(ChatFormatting.RED));
-		if (!pending.dispatcherId.equals(pending.watchedId)) {
-			ServerPlayer dispatcher = server.getPlayerList().getPlayer(pending.dispatcherId);
-			if (dispatcher != null) {
-				dispatcher.sendSystemMessage(
-						Component.literal("Teleport cancelled - " + reasonForDispatcher + ".").withStyle(ChatFormatting.RED));
-			}
+		actionBar(watched, Component.literal("Teleport cancelled - " + reasonForWatched + "!").withStyle(ChatFormatting.RED));
+		if (observer != null) {
+			actionBar(observer, Component.literal("Teleport cancelled - " + reasonForObserver + "!").withStyle(ChatFormatting.RED));
+		}
+	}
+
+	private static void notifyCancel(MinecraftServer server, UUID playerId, String reason) {
+		if (playerId == null) {
+			return;
+		}
+		ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+		if (player != null) {
+			actionBar(player, Component.literal("Teleport cancelled - " + reason + "!").withStyle(ChatFormatting.RED));
 		}
 	}
 
 	private static void showCount(ServerPlayer player, int secondsLeft) {
-		player.connection.send(new ClientboundSetTitlesAnimationPacket(0, 25, 5));
-		// Subtitles only render while a title is up, so show an empty title alongside.
-		player.connection.send(new ClientboundSetTitleTextPacket(Component.literal("")));
-		player.connection.send(new ClientboundSetSubtitleTextPacket(
-				Component.literal(secondsLeft + "...").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)));
+		actionBar(player, Component.literal("Teleporting in " + secondsLeft + "...")
+				.withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
 		// A pearl sound per count, pitched up as it approaches zero: 3 -> 0.8, 2 -> 1.0, 1 -> 1.2.
 		float pitch = 1.4f - 0.2f * secondsLeft;
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),

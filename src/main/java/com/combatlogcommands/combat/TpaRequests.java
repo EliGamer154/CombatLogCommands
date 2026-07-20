@@ -63,6 +63,34 @@ public class TpaRequests {
 		}
 	}
 
+	/** All unexpired requests waiting on this target, oldest first. */
+	public static List<Request> pending(UUID targetId) {
+		List<Request> list = byTarget.get(targetId);
+		if (list == null) {
+			return List.of();
+		}
+		synchronized (list) {
+			List<Request> result = new ArrayList<>();
+			for (Request request : list) {
+				if (!request.expired()) {
+					result.add(request);
+				}
+			}
+			return result;
+		}
+	}
+
+	/** Players who currently have at least one unexpired request waiting on them. */
+	public static List<UUID> targetsWithPending() {
+		List<UUID> result = new ArrayList<>();
+		for (UUID targetId : byTarget.keySet()) {
+			if (!pending(targetId).isEmpty()) {
+				result.add(targetId);
+			}
+		}
+		return result;
+	}
+
 	public static void consume(UUID targetId, Request request) {
 		List<Request> list = byTarget.get(targetId);
 		if (list != null) {
