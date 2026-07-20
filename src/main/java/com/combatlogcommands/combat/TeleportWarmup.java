@@ -90,7 +90,7 @@ public class TeleportWarmup {
 
 	public static void playArrivalSound(ServerPlayer player) {
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-				SoundEvents.ENDER_PEARL_THROW, SoundSource.PLAYERS, 1.0f, 1.0f);
+				SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1.0f, 1.0f);
 	}
 
 	public static void actionBar(ServerPlayer player, Component text) {
@@ -171,9 +171,10 @@ public class TeleportWarmup {
 	private static void showCount(ServerPlayer player, int secondsLeft) {
 		actionBar(player, Component.literal("Teleporting in " + secondsLeft + "...")
 				.withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
-		// A pearl sound per count, pitched up as it approaches zero: 3 -> 0.8, 2 -> 1.0, 1 -> 1.2.
+		// The enderman/pearl teleport "vwoop" per count, pitched up as it approaches zero:
+		// 3 -> 0.8, 2 -> 1.0, 1 -> 1.2. (ENDER_PEARL_THROW is actually the bow-shoot sound.)
 		float pitch = 1.4f - 0.2f * secondsLeft;
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-				SoundEvents.ENDER_PEARL_THROW, SoundSource.PLAYERS, 1.0f, pitch);
+				SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1.0f, pitch);
 	}
 }
