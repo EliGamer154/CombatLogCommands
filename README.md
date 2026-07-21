@@ -21,6 +21,10 @@ The mod takes over `/tpa`, `/tpahere`, `/tpaccept`, and `/tpdeny` so teleports f
 - On accept, a **3... 2... 1... countdown** appears on the action bar (same spot as the combat timer) for **both** players, with an ascending pearl sound on each count. The player who's about to teleport must stand still; **moving or entering combat cancels** it for both. On success they teleport with an ender pearl sound.
 - Self-teleport commands like `/back`, `/rtp`, and `/home` get the same countdown (no acceptance needed) — which commands do is configurable.
 
+### Waymark integration
+
+If the [Waymark](https://github.com/mbreyno/waymark) home mod is installed, teleporting from **its home menu** (clicking a home, then Teleport) also runs the 3-2-1 countdown — the same standing-still / combat-cancel rules apply, and it's blocked during combat. This is an optional hook: it activates only when Waymark is present and does nothing (a harmless startup log line) when it isn't. It's tied to `home` being in `warmupCommands`, so removing `home` there also removes the countdown from the menu.
+
 ## Config
 
 On first run, a config file is created at `config/combatlogcommands.json`:
