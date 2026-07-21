@@ -123,6 +123,11 @@ public class CommandsMixin {
 		// Self-teleport commands (/back, /rtp, ...): hold for the countdown, then re-dispatch to the
 		// providing mod. /back additionally has its own cooldown, checked and consumed here.
 		if (ModConfig.get().isWarmupCommand(label)) {
+			// Commands like /home only teleport when named a home ("/home <name>"); bare "/home" opens
+			// the home list, so don't start a countdown for it - let it pass straight through.
+			if (ModConfig.get().warmupRequiresArgument(label) && firstArg == null) {
+				return;
+			}
 			boolean isBack = label.equalsIgnoreCase("back");
 			if (isBack) {
 				long remainingMs = BackCooldown.remainingMillis(player.getUUID());

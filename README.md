@@ -45,6 +45,9 @@ On first run, a config file is created at `config/combatlogcommands.json`:
     "rtp",
     "home"
   ],
+  "warmupRequiresArg": [
+    "home"
+  ],
   "combatDurationSeconds": 15.0,
   "backCooldownSeconds": 30.0,
   "fireworkCooldownSeconds": 1.5,
@@ -57,6 +60,7 @@ On first run, a config file is created at `config/combatlogcommands.json`:
 - `blockedCommands` — commands a combat-tagged player can't use (no leading slash, case-insensitive).
 - `blockedWhenTargetInCombat` — commands that can't be sent **at** a player who is in combat (first argument is treated as the target's name).
 - `warmupCommands` — self-teleport commands (no acceptance needed) that get held for the 3-2-1 countdown before running.
+- `warmupRequiresArg` — warmup commands that only count down when given an argument (e.g. `/home <name>`), so a bare `/home` that just opens the home list doesn't start a countdown.
 - `combatDurationSeconds` — how long the combat tag lasts per hit.
 - `backCooldownSeconds` — the always-on `/back` cooldown.
 - `fireworkCooldownSeconds` / `fireworkEveryThirdCooldownSeconds` — the in-combat firework rocket cooldown, and the longer one applied to every 3rd rocket.
@@ -88,6 +92,7 @@ Requires op (permission level 2+). Every change is saved to the config file imme
 - `/combatlog blocked add|remove <command>` — edit the in-combat blocked command list.
 - `/combatlog targetblocked add|remove <command>` — edit the can't-target-someone-in-combat list.
 - `/combatlog warmupcmd add|remove <command>` — edit the list of self-teleport commands that get the countdown.
+- `/combatlog warmupneedsarg add|remove <command>` — edit which countdown commands only fire when given an argument (like `/home <name>`).
 - `/combatlog player <name> combatduration|fireworkcooldown|fireworkthirdcooldown <seconds>` — set a per-player override.
 - `/combatlog player <name> clear` — remove all of a player's overrides.
 

@@ -59,6 +59,7 @@ public class CombatLogAdminCommand {
 				.then(listEditor("blocked", ListKind.BLOCKED))
 				.then(listEditor("targetblocked", ListKind.TARGET_BLOCKED))
 				.then(listEditor("warmupcmd", ListKind.WARMUP))
+				.then(listEditor("warmupneedsarg", ListKind.WARMUP_NEEDS_ARG))
 				.then(Commands.literal("player")
 						.then(Commands.argument("name", StringArgumentType.word())
 								.then(playerSetting("combatduration", "combat duration",
@@ -113,7 +114,8 @@ public class CombatLogAdminCommand {
 	private enum ListKind {
 		BLOCKED("combat-blocked commands"),
 		TARGET_BLOCKED("target-blocked commands"),
-		WARMUP("countdown commands");
+		WARMUP("countdown commands"),
+		WARMUP_NEEDS_ARG("countdown-only-with-argument commands");
 
 		final String label;
 
@@ -126,6 +128,7 @@ public class CombatLogAdminCommand {
 				case BLOCKED -> ModConfig.get().addBlockedCommand(command);
 				case TARGET_BLOCKED -> ModConfig.get().addTargetBlockedCommand(command);
 				case WARMUP -> ModConfig.get().addWarmupCommand(command);
+				case WARMUP_NEEDS_ARG -> ModConfig.get().addWarmupRequiresArg(command);
 			};
 		}
 
@@ -134,6 +137,7 @@ public class CombatLogAdminCommand {
 				case BLOCKED -> ModConfig.get().removeBlockedCommand(command);
 				case TARGET_BLOCKED -> ModConfig.get().removeTargetBlockedCommand(command);
 				case WARMUP -> ModConfig.get().removeWarmupCommand(command);
+				case WARMUP_NEEDS_ARG -> ModConfig.get().removeWarmupRequiresArg(command);
 			};
 		}
 	}
