@@ -103,17 +103,6 @@ public class TpaRequests {
 		}
 	}
 
-	/** Players who currently have at least one unexpired request waiting on them. */
-	public static List<UUID> targetsWithPending() {
-		List<UUID> result = new ArrayList<>();
-		for (UUID targetId : byTarget.keySet()) {
-			if (!pending(targetId).isEmpty()) {
-				result.add(targetId);
-			}
-		}
-		return result;
-	}
-
 	public static void consume(UUID targetId, Request request) {
 		List<Request> list = byTarget.get(targetId);
 		if (list != null) {

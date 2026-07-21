@@ -60,19 +60,6 @@ public class TeleportWarmup {
 		}
 	}
 
-	/** True while the player is part of any active countdown, as the teleporter or the other party. */
-	public static boolean isCountingDown(UUID playerId) {
-		if (pendingByWatched.containsKey(playerId)) {
-			return true;
-		}
-		for (Pending pending : pendingByWatched.values()) {
-			if (playerId.equals(pending.observerId)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	/** True exactly once per re-dispatched command: tells the mixin to let it straight through. */
 	public static boolean consumeBypass(UUID dispatcherId) {
 		return bypassNextCommand.remove(dispatcherId);

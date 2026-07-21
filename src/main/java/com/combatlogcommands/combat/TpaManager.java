@@ -1,6 +1,5 @@
 package com.combatlogcommands.combat;
 
-import com.combatlogcommands.CombatLogCommands;
 import com.combatlogcommands.config.ModConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -9,18 +8,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 /**
  * Our own /tpa //tpahere flow, replacing the providing mod's entirely (its dispatch is cancelled in
- * the command mixin). Requests never touch chat: the target gets an action-bar notice with a sound,
- * re-shown every few seconds while pending, and accepts through the /tpaccept menu. Accepting runs
- * the shared action-bar countdown for both players and then teleports directly.
+ * the command mixin). Requests never touch chat: the target gets a one-time action-bar notice with a
+ * sound and accepts through the /tpaccept menu. Accepting runs the shared action-bar countdown for
+ * both players and then teleports directly.
  */
 public class TpaManager {
-	private static final int REMINDER_INTERVAL_TICKS = 100;
 
 	private TpaManager() {
 	}
@@ -92,32 +89,9 @@ public class TpaManager {
 		TeleportWarmup.actionBar(anchor, Component.literal("Teleported!").withStyle(ChatFormatting.GREEN));
 	}
 
-	public static void onServerTick(MinecraftServer server) {
-		try {
-			if (server.getTickCount() % REMINDER_INTERVAL_TICKS != 0) {
-				return;
-			}
-			remindPendingTargets(server);
-		} catch (Throwable t) {
-			CombatLogCommands.LOGGER.error("combatlogcommands tpa reminder tick threw", t);
-		}
-	}
-
-	// The action bar only lingers a couple of seconds, so quietly re-show the notice while a request
-	// is pending - unless the combat timer or a countdown currently owns that screen space.
-	private static void remindPendingTargets(MinecraftServer server) {
-		for (UUID targetId : TpaRequests.targetsWithPending()) {
-			ServerPlayer target = server.getPlayerList().getPlayer(targetId);
-			if (target == null || CombatState.get(server).isInCombat(targetId) || TeleportWarmup.isCountingDown(targetId)) {
-				continue;
-			}
-			List<TpaRequests.Request> pending = TpaRequests.pending(targetId);
-			if (!pending.isEmpty()) {
-				TpaRequests.Request latest = pending.get(pending.size() - 1);
-				showRequestNotice(target, latest.requesterName(), latest.type());
-			}
-		}
-	}
+	// The notice is shown once when the request arrives (with the chime); the target can re-open it
+	// any time with /tpaccept while the request is valid. It deliberately does NOT keep re-appearing
+	// on the action bar - that was reported as annoying screen spam.
 
 	private static void showRequestNotice(ServerPlayer target, String requesterName, TpaRequests.Type type) {
 		String text = type == TpaRequests.Type.TPA

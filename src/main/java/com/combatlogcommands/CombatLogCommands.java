@@ -26,7 +26,6 @@ public class CombatLogCommands implements ModInitializer {
 		ServerPlayerEvents.LEAVE.register(CombatHandler::onLeave);
 		ServerTickEvents.END_SERVER_TICK.register(CombatHandler::onServerTick);
 		ServerTickEvents.END_SERVER_TICK.register(TeleportWarmup::onServerTick);
-		ServerTickEvents.END_SERVER_TICK.register(TpaManager::onServerTick);
 		ItemEvents.USE.register(CombatHandler::onUseItem);
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> CombatLogAdminCommand.register(dispatcher));
 
