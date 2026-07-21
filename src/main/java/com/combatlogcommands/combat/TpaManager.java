@@ -26,6 +26,17 @@ public class TpaManager {
 	}
 
 	public static void request(MinecraftServer server, ServerPlayer requester, ServerPlayer target, TpaRequests.Type type) {
+		// Anti-spam: while an earlier request to this same target is still pending, refuse to send
+		// another (which would re-flash the notice and re-play the chime). They wait it out or the
+		// target responds.
+		long remainingMs = TpaRequests.existingRequestRemainingMillis(target.getUUID(), requester.getUUID());
+		if (remainingMs > 0) {
+			long remainingSeconds = (remainingMs + 999) / 1000;
+			TeleportWarmup.actionBar(requester, Component.literal("You already have a request pending to "
+					+ target.getScoreboardName() + " - wait " + remainingSeconds + "s.").withStyle(ChatFormatting.RED));
+			return;
+		}
+
 		TpaRequests.record(target.getUUID(), requester.getUUID(), requester.getScoreboardName(), type);
 		showRequestNotice(target, requester.getScoreboardName(), type);
 		// A distinct "incoming request" chime, so the notice isn't missed.

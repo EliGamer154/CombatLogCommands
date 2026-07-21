@@ -24,6 +24,10 @@ public class TpaRequests {
 		public boolean expired() {
 			return System.currentTimeMillis() - createdAt > EXPIRY_MILLIS;
 		}
+
+		public long remainingMillis() {
+			return Math.max(0, EXPIRY_MILLIS - (System.currentTimeMillis() - createdAt));
+		}
 	}
 
 	// Keyed by the request TARGET (the player who can /tpaccept).
@@ -38,6 +42,25 @@ public class TpaRequests {
 			list.removeIf(request -> request.requesterId().equals(requesterId) || request.expired());
 			list.add(new Request(requesterId, requesterName, type, System.currentTimeMillis()));
 		}
+	}
+
+	/**
+	 * If this requester already has an unexpired request waiting on this target, the ms left before it
+	 * times out (during which they can't send another to the same player); 0 if they may send now.
+	 */
+	public static long existingRequestRemainingMillis(UUID targetId, UUID requesterId) {
+		List<Request> list = byTarget.get(targetId);
+		if (list == null) {
+			return 0;
+		}
+		synchronized (list) {
+			for (Request request : list) {
+				if (!request.expired() && request.requesterId().equals(requesterId)) {
+					return request.remainingMillis();
+				}
+			}
+		}
+		return 0;
 	}
 
 	/**
