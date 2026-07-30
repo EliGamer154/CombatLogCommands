@@ -35,6 +35,21 @@ public class TpaManager {
 		}
 
 		TpaRequests.record(target.getUUID(), requester.getUUID(), requester.getScoreboardName(), type);
+
+		// /tpauto: if the target auto-accepts this requester (globally or specifically), skip the
+		// notice and go straight into the accept countdown.
+		if (TpaAuto.shouldAutoAccept(target.getUUID(), requester.getUUID())) {
+			TeleportWarmup.actionBar(requester,
+					Component.literal(target.getScoreboardName() + " auto-accepted your request.").withStyle(ChatFormatting.GREEN));
+			TeleportWarmup.actionBar(target,
+					Component.literal("Auto-accepted teleport from " + requester.getScoreboardName() + ".").withStyle(ChatFormatting.AQUA));
+			TpaRequests.Request recorded = TpaRequests.find(target.getUUID(), requester.getScoreboardName());
+			if (recorded != null) {
+				accept(server, target, recorded);
+			}
+			return;
+		}
+
 		showRequestNotice(target, requester.getScoreboardName(), type);
 		// A distinct "incoming request" chime, so the notice isn't missed.
 		target.level().playSound(null, target.getX(), target.getY(), target.getZ(),

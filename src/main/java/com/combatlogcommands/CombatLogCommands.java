@@ -2,8 +2,8 @@ package com.combatlogcommands;
 
 import com.combatlogcommands.combat.CombatHandler;
 import com.combatlogcommands.combat.TeleportWarmup;
-import com.combatlogcommands.combat.TpaManager;
 import com.combatlogcommands.command.CombatLogAdminCommand;
+import com.combatlogcommands.command.TpaAutoCommand;
 import com.combatlogcommands.config.ModConfig;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -27,7 +27,10 @@ public class CombatLogCommands implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(CombatHandler::onServerTick);
 		ServerTickEvents.END_SERVER_TICK.register(TeleportWarmup::onServerTick);
 		ItemEvents.USE.register(CombatHandler::onUseItem);
-		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> CombatLogAdminCommand.register(dispatcher));
+		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
+			CombatLogAdminCommand.register(dispatcher);
+			TpaAutoCommand.register(dispatcher);
+		});
 
 		LOGGER.info("CombatLogCommands initialized");
 	}

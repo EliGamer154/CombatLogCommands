@@ -19,6 +19,10 @@ The mod takes over `/tpa`, `/tpahere`, `/tpaccept`, and `/tpdeny` so teleports f
 - Sending `/tpa <player>` or `/tpahere <player>` does **not** spam chat. The target instead gets a **one-time action-bar notice with a chime sound**, and the sender sees a confirmation. The notice shows once and fades — it doesn't keep reappearing; the target can pull the request back up any time with `/tpaccept`.
 - The target accepts by running `/tpaccept`, which opens a small **menu of pending requests** (each shown as the requester's head) — click one to accept it. `/tpdeny` clears all pending requests.
 - **No spamming**: while a request you sent is still pending, you can't send another to the same player — you have to wait for it to time out (or for them to respond) first. So no one can spam the notice on someone's screen to annoy them.
+- **Auto-accept** with `/tpauto`:
+  - `/tpauto` — toggle auto-accepting **all** incoming teleport requests to you. While on, anyone who sends you a `/tpa` or `/tpahere` is accepted automatically (the teleport still runs the normal 3-2-1 countdown).
+  - `/tpauto <player>` — toggle auto-accept for **just that one player**, so only their requests skip the menu.
+  - Auto-accept preferences are per-player and reset on server restart.
 - On accept, a **3... 2... 1... countdown** appears on the action bar (same spot as the combat timer) for **both** players, with an ascending pearl sound on each count. The player who's about to teleport must stand still; **moving or entering combat cancels** it for both. On success they teleport with an ender pearl sound.
 - Self-teleport commands like `/back`, `/rtp`, and `/home` get the same countdown (no acceptance needed) — which commands do is configurable.
 
