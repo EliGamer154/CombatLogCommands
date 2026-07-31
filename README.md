@@ -86,6 +86,16 @@ On first run, a config file is created at `config/combatlogcommands.json`:
 
 Old config files upgrade automatically: any missing settings are added with their defaults on server start, and your existing values are kept. After editing by hand, apply live with `/combatlog reload`.
 
+## Gamerules
+
+Three custom boolean gamerules fully disable a command for everyone (independent of combat). All default to **false** (command enabled):
+
+- `/gamerule combatlogcommands:disable_back true` — disable `/back`.
+- `/gamerule combatlogcommands:disable_rtp true` — disable `/rtp`.
+- `/gamerule combatlogcommands:disable_home true` — disable `/home` (including the Waymark home menu, if installed).
+
+Set back to `false` to re-enable. Anyone who runs a disabled command gets a "that command is disabled" message.
+
 ## Admin commands
 
 Requires op (permission level 2+). Every change is saved to the config file immediately — no restart or reload needed:

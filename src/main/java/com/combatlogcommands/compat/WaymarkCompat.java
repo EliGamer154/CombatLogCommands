@@ -4,6 +4,7 @@ import com.combatlogcommands.CombatLogCommands;
 import com.combatlogcommands.combat.CombatState;
 import com.combatlogcommands.combat.TeleportWarmup;
 import com.combatlogcommands.config.ModConfig;
+import com.combatlogcommands.gamerule.ModGameRules;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -60,8 +61,15 @@ public final class WaymarkCompat {
 				return false;
 			}
 
-			// Close the menu so the action-bar countdown is actually visible.
+			// Close the menu so the action-bar countdown (or a refusal message) is actually visible.
 			player.closeContainer();
+
+			// Respect the disable_home gamerule even through Waymark's menu.
+			if (ModGameRules.isHomeDisabled(server)) {
+				TeleportWarmup.actionBar(player,
+						Component.literal("/home is disabled on this server.").withStyle(ChatFormatting.RED));
+				return true;
+			}
 
 			if (CombatState.get(server).isInCombat(player.getUUID())) {
 				TeleportWarmup.actionBar(player,

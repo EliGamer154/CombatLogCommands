@@ -7,6 +7,7 @@ import com.combatlogcommands.combat.TeleportWarmup;
 import com.combatlogcommands.combat.TpaManager;
 import com.combatlogcommands.combat.TpaRequests;
 import com.combatlogcommands.config.ModConfig;
+import com.combatlogcommands.gamerule.ModGameRules;
 import com.combatlogcommands.gui.TpaRequestsMenu;
 import com.mojang.brigadier.ParseResults;
 import net.minecraft.ChatFormatting;
@@ -64,6 +65,13 @@ public class CommandsMixin {
 		int spaceIndex = withoutSlash.indexOf(' ');
 		String label = spaceIndex >= 0 ? withoutSlash.substring(0, spaceIndex) : withoutSlash;
 		String firstArg = combatlogcommands$firstArg(withoutSlash, spaceIndex);
+
+		// Hard gamerule disable (independent of combat): /back, /rtp, /home when their rule is on.
+		if (ModGameRules.isCommandDisabled(server, label)) {
+			source.sendFailure(Component.literal("/" + label + " is disabled on this server.").withStyle(ChatFormatting.RED));
+			ci.cancel();
+			return;
+		}
 
 		if (CombatState.get(server).isInCombat(player.getUUID()) && ModConfig.get().isBlockedCommand(label)) {
 			source.sendFailure(Component.literal("You can't use /" + label + " during combat.").withStyle(ChatFormatting.RED));

@@ -5,6 +5,7 @@ import com.combatlogcommands.combat.TeleportWarmup;
 import com.combatlogcommands.command.CombatLogAdminCommand;
 import com.combatlogcommands.command.TpaAutoCommand;
 import com.combatlogcommands.config.ModConfig;
+import com.combatlogcommands.gamerule.ModGameRules;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -21,6 +22,7 @@ public class CombatLogCommands implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModConfig.get();
+		ModGameRules.register();
 
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(CombatHandler::onDamage);
 		ServerPlayerEvents.LEAVE.register(CombatHandler::onLeave);
