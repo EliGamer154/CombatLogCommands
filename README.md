@@ -93,6 +93,7 @@ Three custom boolean gamerules fully disable a command for everyone (independent
 - `/gamerule combatlogcommands:disable_back true` — disable `/back`.
 - `/gamerule combatlogcommands:disable_rtp true` — disable `/rtp`.
 - `/gamerule combatlogcommands:disable_home true` — disable `/home` (including the Waymark home menu, if installed).
+- `/gamerule combatlogcommands:disable_shop true` — disable `/shop`.
 
 Set back to `false` to re-enable. Anyone who runs a disabled command gets a "that command is disabled" message.
 

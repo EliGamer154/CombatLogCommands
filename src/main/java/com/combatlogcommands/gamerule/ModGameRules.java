@@ -15,11 +15,13 @@ import net.minecraft.world.level.gamerules.GameRuleCategory;
  *   /gamerule combatlogcommands:disable_back true
  *   /gamerule combatlogcommands:disable_rtp true
  *   /gamerule combatlogcommands:disable_home true
+ *   /gamerule combatlogcommands:disable_shop true
  */
 public final class ModGameRules {
 	public static GameRule<Boolean> disableBack;
 	public static GameRule<Boolean> disableRtp;
 	public static GameRule<Boolean> disableHome;
+	public static GameRule<Boolean> disableShop;
 
 	private ModGameRules() {
 	}
@@ -28,6 +30,7 @@ public final class ModGameRules {
 		disableBack = boolRule("disable_back");
 		disableRtp = boolRule("disable_rtp");
 		disableHome = boolRule("disable_home");
+		disableShop = boolRule("disable_shop");
 	}
 
 	private static GameRule<Boolean> boolRule(String path) {
@@ -42,6 +45,7 @@ public final class ModGameRules {
 			case "back" -> disableBack;
 			case "rtp" -> disableRtp;
 			case "home" -> disableHome;
+			case "shop" -> disableShop;
 			default -> null;
 		};
 		return rule != null && Boolean.TRUE.equals(server.getGameRules().get(rule));
