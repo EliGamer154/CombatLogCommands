@@ -16,12 +16,18 @@ import net.minecraft.world.level.gamerules.GameRuleCategory;
  *   /gamerule combatlogcommands:disable_rtp true
  *   /gamerule combatlogcommands:disable_home true
  *   /gamerule combatlogcommands:disable_shop true
+ *   /gamerule combatlogcommands:dragoneggpowers true
  */
 public final class ModGameRules {
 	public static GameRule<Boolean> disableBack;
 	public static GameRule<Boolean> disableRtp;
 	public static GameRule<Boolean> disableHome;
 	public static GameRule<Boolean> disableShop;
+	public static GameRule<Boolean> dragonEggPowers;
+
+	// Held so mixins/handlers without a Level reference (e.g. the ender-chest Slot mixin) can read
+	// gamerules. Set from ServerLifecycleEvents in the mod initializer.
+	private static MinecraftServer server;
 
 	private ModGameRules() {
 	}
@@ -31,6 +37,11 @@ public final class ModGameRules {
 		disableRtp = boolRule("disable_rtp");
 		disableHome = boolRule("disable_home");
 		disableShop = boolRule("disable_shop");
+		dragonEggPowers = boolRule("dragoneggpowers");
+	}
+
+	public static void setServer(MinecraftServer value) {
+		server = value;
 	}
 
 	private static GameRule<Boolean> boolRule(String path) {
@@ -53,5 +64,11 @@ public final class ModGameRules {
 
 	public static boolean isHomeDisabled(MinecraftServer server) {
 		return disableHome != null && Boolean.TRUE.equals(server.getGameRules().get(disableHome));
+	}
+
+	/** Reads the dragoneggpowers rule via the held server, for callers without a Level reference. */
+	public static boolean isDragonEggPowers() {
+		return server != null && dragonEggPowers != null
+				&& Boolean.TRUE.equals(server.getGameRules().get(dragonEggPowers));
 	}
 }

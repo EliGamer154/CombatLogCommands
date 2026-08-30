@@ -97,6 +97,10 @@ Three custom boolean gamerules fully disable a command for everyone (independent
 
 Set back to `false` to re-enable. Anyone who runs a disabled command gets a "that command is disabled" message.
 
+There's also a dragon egg gamerule (default **false**):
+
+- `/gamerule combatlogcommands:dragoneggpowers true` — while on, the dragon egg **can't be put in an ender chest**, and any player holding a dragon egg in their inventory gets **+5 hearts** and **Strength II**. Both effects go away when they no longer have the egg (or the rule is turned off).
+
 ## Admin commands
 
 Requires op (permission level 2+). Every change is saved to the config file immediately — no restart or reload needed:
