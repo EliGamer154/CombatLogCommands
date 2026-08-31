@@ -55,11 +55,13 @@ public class NethUpgradeMenu extends ChestMenu {
 		for (int i = 0; i < entries.size(); i++) {
 			MaxGear.Entry entry = entries.get(i);
 			int slot = 18 + (i / 7) * 9 + (i % 7) + 1;
-			boolean enabled = NethEnchantPrefs.isEnabled(player.getUUID(), entry.key());
+			boolean enabled = MaxGear.isEnabled(player.getUUID(), entry);
 			ItemStack book = new ItemStack(enabled ? Items.ENCHANTED_BOOK : Items.BOOK);
+			String hint = entry.group() == null
+					? (enabled ? "Click to remove it" : "Click to add it back")
+					: (enabled ? "Click to swap it out" : "Click to use this one");
 			setButton(slot, icon(book, (enabled ? "§a" : "§c") + entry.display(),
-							enabled ? "Status: ENABLED" : "Status: DISABLED",
-							enabled ? "Click to remove it" : "Click to add it back"),
+							enabled ? "Status: ENABLED" : "Status: DISABLED", hint),
 					() -> toggle(entry));
 		}
 
@@ -70,8 +72,23 @@ public class NethUpgradeMenu extends ChestMenu {
 	}
 
 	private void toggle(MaxGear.Entry entry) {
-		NethEnchantPrefs.toggle(player.getUUID(), entry.key());
+		boolean nowEnabled = !MaxGear.isEnabled(player.getUUID(), entry);
+		setEnabled(entry, nowEnabled);
+		// Turning on a member of an exclusive group (e.g. Silk Touch) turns the others off (Fortune),
+		// so incompatible enchants can never both be applied.
+		if (nowEnabled && entry.group() != null) {
+			for (MaxGear.Entry other : MaxGear.enchantsFor(base.getItem())) {
+				if (entry.group().equals(other.group()) && !other.key().equals(entry.key())) {
+					setEnabled(other, false);
+				}
+			}
+		}
 		render();
+	}
+
+	private void setEnabled(MaxGear.Entry entry, boolean enabled) {
+		// isEnabled == defaultOn ^ flipped, so flipped needed for a target state = defaultOn != enabled.
+		NethEnchantPrefs.setFlipped(player.getUUID(), entry.key(), entry.defaultOn() != enabled);
 	}
 
 	private void confirm() {

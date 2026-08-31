@@ -67,21 +67,26 @@ public abstract class SmithingMenuMixin {
 		}
 
 		ItemStack base = inputSlots.getItem(1).copy();
+		// Rebuild exactly what was previewed/delivered so we can find and remove it (matching item +
+		// components, NOT count - a shift-move changes the count on the passed stack, which is what let
+		// the item be duplicated). Build it before consuming the inputs.
+		ItemStack delivered = MaxGear.build(level, base, serverPlayer.getUUID());
+
 		// Consume the inputs ourselves (template + diamond + ingot), then skip vanilla onTake.
 		inputSlots.removeItem(0, 1);
 		inputSlots.removeItem(1, 1);
 		inputSlots.removeItem(2, 1);
 
-		// The maxed preview was just delivered to the cursor or inventory - take it back; the real
-		// item is handed over through the confirm menu instead. Diamond gear is non-stackable, so the
-		// preview is a single distinct stack that's easy to find.
+		// The maxed preview was just handed to the cursor or the inventory - take exactly one back; the
+		// real item is delivered through the confirm menu instead. Diamond gear is non-stackable, so
+		// there's a single matching stack to remove.
 		AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
-		if (ItemStack.matches(menu.getCarried(), stack)) {
+		if (ItemStack.isSameItemSameComponents(menu.getCarried(), delivered)) {
 			menu.setCarried(ItemStack.EMPTY);
 		} else {
 			Inventory inv = serverPlayer.getInventory();
 			for (int i = 0; i < inv.getContainerSize(); i++) {
-				if (ItemStack.matches(inv.getItem(i), stack)) {
+				if (ItemStack.isSameItemSameComponents(inv.getItem(i), delivered)) {
 					inv.removeItemNoUpdate(i);
 					break;
 				}

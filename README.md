@@ -105,11 +105,11 @@ There's also a dragon egg gamerule (default **false**):
   - Helmet: Protection IV, Mending, Unbreaking III, Aqua Affinity, Respiration III
   - Chestplate: Protection IV, Mending, Unbreaking III
   - Leggings: Protection IV, Mending, Unbreaking III, Swift Sneak III
-  - Boots: Protection IV, Mending, Unbreaking III, Depth Strider III, Soul Speed III
+  - Boots: Protection IV, Mending, Unbreaking III, Feather Falling IV, Depth Strider III, Soul Speed III
   - Sword: Sharpness V, Looting III, Sweeping Edge III, Fire Aspect II, Knockback II, Mending, Unbreaking III
   - Spear: Sharpness V, Looting III, Fire Aspect II, Knockback II, Lunge III, Mending, Unbreaking III
   - Axe: Sharpness V, Efficiency V, Mending, Unbreaking III
-  - Pickaxe / Shovel / Hoe: Efficiency V, Fortune III, Mending, Unbreaking III
+  - Pickaxe / Shovel / Hoe: Efficiency V, Mending, Unbreaking III, and your choice of **Fortune III or Silk Touch** (in the menu, enabling one turns the other off)
 
 ## Admin commands
 

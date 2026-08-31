@@ -16,18 +16,27 @@ import java.util.UUID;
 
 /**
  * Defines which diamond items the donethupgradesarmor upgrade can max, the enchant set for each, and
- * how to build the maxed item (skipping any enchant the player has toggled off in the confirm menu).
- * All enchants in a set are mutually compatible, so leaving any of them off never yields an illegal
- * combination.
+ * how to build the maxed item (skipping any enchant the player toggled off in the confirm menu).
+ *
+ * Most enchants default ON and are independent. Enchants that share a non-null {@code group} are
+ * mutually exclusive - at most one is applied - so e.g. a pickaxe offers Fortune (default) OR Silk
+ * Touch, and picking one turns the other off. All non-exclusive enchants in a set are mutually
+ * compatible, so no illegal combination is ever produced.
  */
 public final class MaxGear {
-	/** One enchant of a maxed set: the enchant, the level to apply, and a menu display name. */
-	public record Entry(ResourceKey<Enchantment> key, int level, String display) {
+	public record Entry(ResourceKey<Enchantment> key, int level, String display, boolean defaultOn, String group) {
+		static Entry of(ResourceKey<Enchantment> key, int level, String display) {
+			return new Entry(key, level, display, true, null);
+		}
+
+		static Entry grouped(ResourceKey<Enchantment> key, int level, String display, boolean defaultOn, String group) {
+			return new Entry(key, level, display, defaultOn, group);
+		}
 	}
 
-	private static final Entry PROT = new Entry(Enchantments.PROTECTION, 4, "Protection IV");
-	private static final Entry MEND = new Entry(Enchantments.MENDING, 1, "Mending");
-	private static final Entry UNBR = new Entry(Enchantments.UNBREAKING, 3, "Unbreaking III");
+	private static final Entry PROT = Entry.of(Enchantments.PROTECTION, 4, "Protection IV");
+	private static final Entry MEND = Entry.of(Enchantments.MENDING, 1, "Mending");
+	private static final Entry UNBR = Entry.of(Enchantments.UNBREAKING, 3, "Unbreaking III");
 
 	private MaxGear() {
 	}
@@ -36,45 +45,52 @@ public final class MaxGear {
 		return !enchantsFor(item).isEmpty();
 	}
 
-	/** The full enchant set for a maxable diamond item, or an empty list if the item isn't maxable. */
 	public static List<Entry> enchantsFor(Item item) {
 		if (item == Items.DIAMOND_HELMET) {
 			return List.of(PROT, MEND, UNBR,
-					new Entry(Enchantments.AQUA_AFFINITY, 1, "Aqua Affinity"),
-					new Entry(Enchantments.RESPIRATION, 3, "Respiration III"));
+					Entry.of(Enchantments.AQUA_AFFINITY, 1, "Aqua Affinity"),
+					Entry.of(Enchantments.RESPIRATION, 3, "Respiration III"));
 		} else if (item == Items.DIAMOND_CHESTPLATE) {
 			return List.of(PROT, MEND, UNBR);
 		} else if (item == Items.DIAMOND_LEGGINGS) {
 			return List.of(PROT, MEND, UNBR,
-					new Entry(Enchantments.SWIFT_SNEAK, 3, "Swift Sneak III"));
+					Entry.of(Enchantments.SWIFT_SNEAK, 3, "Swift Sneak III"));
 		} else if (item == Items.DIAMOND_BOOTS) {
 			return List.of(PROT, MEND, UNBR,
-					new Entry(Enchantments.DEPTH_STRIDER, 3, "Depth Strider III"),
-					new Entry(Enchantments.SOUL_SPEED, 3, "Soul Speed III"));
+					Entry.of(Enchantments.FEATHER_FALLING, 4, "Feather Falling IV"),
+					Entry.of(Enchantments.DEPTH_STRIDER, 3, "Depth Strider III"),
+					Entry.of(Enchantments.SOUL_SPEED, 3, "Soul Speed III"));
 		} else if (item == Items.DIAMOND_SWORD) {
 			return List.of(
-					new Entry(Enchantments.SHARPNESS, 5, "Sharpness V"),
-					new Entry(Enchantments.LOOTING, 3, "Looting III"),
-					new Entry(Enchantments.SWEEPING_EDGE, 3, "Sweeping Edge III"),
-					new Entry(Enchantments.FIRE_ASPECT, 2, "Fire Aspect II"),
-					new Entry(Enchantments.KNOCKBACK, 2, "Knockback II"), MEND, UNBR);
+					Entry.of(Enchantments.SHARPNESS, 5, "Sharpness V"),
+					Entry.of(Enchantments.LOOTING, 3, "Looting III"),
+					Entry.of(Enchantments.SWEEPING_EDGE, 3, "Sweeping Edge III"),
+					Entry.of(Enchantments.FIRE_ASPECT, 2, "Fire Aspect II"),
+					Entry.of(Enchantments.KNOCKBACK, 2, "Knockback II"), MEND, UNBR);
 		} else if (item == Items.DIAMOND_SPEAR) {
 			return List.of(
-					new Entry(Enchantments.SHARPNESS, 5, "Sharpness V"),
-					new Entry(Enchantments.LOOTING, 3, "Looting III"),
-					new Entry(Enchantments.FIRE_ASPECT, 2, "Fire Aspect II"),
-					new Entry(Enchantments.KNOCKBACK, 2, "Knockback II"),
-					new Entry(Enchantments.LUNGE, 3, "Lunge III"), MEND, UNBR);
+					Entry.of(Enchantments.SHARPNESS, 5, "Sharpness V"),
+					Entry.of(Enchantments.LOOTING, 3, "Looting III"),
+					Entry.of(Enchantments.FIRE_ASPECT, 2, "Fire Aspect II"),
+					Entry.of(Enchantments.KNOCKBACK, 2, "Knockback II"),
+					Entry.of(Enchantments.LUNGE, 3, "Lunge III"), MEND, UNBR);
 		} else if (item == Items.DIAMOND_AXE) {
 			return List.of(
-					new Entry(Enchantments.SHARPNESS, 5, "Sharpness V"),
-					new Entry(Enchantments.EFFICIENCY, 5, "Efficiency V"), MEND, UNBR);
+					Entry.of(Enchantments.SHARPNESS, 5, "Sharpness V"),
+					Entry.of(Enchantments.EFFICIENCY, 5, "Efficiency V"), MEND, UNBR);
 		} else if (item == Items.DIAMOND_PICKAXE || item == Items.DIAMOND_SHOVEL || item == Items.DIAMOND_HOE) {
 			return List.of(
-					new Entry(Enchantments.EFFICIENCY, 5, "Efficiency V"),
-					new Entry(Enchantments.FORTUNE, 3, "Fortune III"), MEND, UNBR);
+					Entry.of(Enchantments.EFFICIENCY, 5, "Efficiency V"),
+					Entry.grouped(Enchantments.FORTUNE, 3, "Fortune III", true, "mining"),
+					Entry.grouped(Enchantments.SILK_TOUCH, 1, "Silk Touch", false, "mining"),
+					MEND, UNBR);
 		}
 		return List.of();
+	}
+
+	/** Whether an enchant entry is currently on for this player (its default, flipped by their toggles). */
+	public static boolean isEnabled(UUID player, Entry entry) {
+		return entry.defaultOn() != NethEnchantPrefs.isFlipped(player, entry.key());
 	}
 
 	/** Builds the maxed item from a base diamond item, applying only the enchants the player has enabled. */
@@ -85,7 +101,7 @@ public final class MaxGear {
 		List<Entry> entries = enchantsFor(base.getItem());
 		EnchantmentHelper.updateEnchantments(result, mutable -> {
 			for (Entry entry : entries) {
-				if (NethEnchantPrefs.isEnabled(player, entry.key())) {
+				if (isEnabled(player, entry)) {
 					mutable.set(reg.getOrThrow(entry.key()), entry.level());
 				}
 			}
