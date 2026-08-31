@@ -1,19 +1,18 @@
 package com.combatlogcommands.mixin;
 
 import com.combatlogcommands.gamerule.ModGameRules;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
+import com.combatlogcommands.gui.NethUpgradeMenu;
+import com.combatlogcommands.nethupgrade.MaxGear;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
-import net.minecraft.world.inventory.ResultContainer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.SmithingMenu;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,16 +21,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.UUID;
+
 /**
- * With the donethupgradesarmor gamerule on, upgrading a DIAMOND armor piece or tool/weapon in the
- * smithing table with a netherite upgrade template + netherite ingot produces the same diamond item
- * maxed out with its best enchantments (instead of netherite gear). Meant to pair with a "no
- * netherite" setup: the netherite result is unwanted, so the normal netherite upgrade is repurposed
- * to max the diamond item.
- *
- * The result is computed from the input slots at the tail of createResult, so it works whether or
- * not the vanilla netherite smithing recipe still exists. The result slot always allows pickup and
- * onTake shrinks all three inputs (template + diamond + ingot) by one, so vanilla handles consumption.
+ * The donethupgradesarmor flow. When the rule is on and a diamond item is set up for a netherite
+ * upgrade (netherite template + netherite ingot), the smithing result shows a preview of the maxed
+ * item; taking it consumes the inputs and opens the {@link NethUpgradeMenu} to confirm which enchants
+ * to keep, which then hands over the finished item. Computing from the input slots (not the vanilla
+ * recipe) means it works whether or not the netherite recipe still exists.
  */
 @Mixin(SmithingMenu.class)
 public abstract class SmithingMenuMixin {
@@ -40,78 +37,80 @@ public abstract class SmithingMenuMixin {
 	private Level level;
 
 	@Inject(method = "createResult", at = @At("TAIL"))
-	private void combatlogcommands$nethUpgradesArmor(CallbackInfo ci) {
+	private void combatlogcommands$previewMaxed(CallbackInfo ci) {
 		MinecraftServer server = level.getServer();
 		if (server == null || !ModGameRules.isDoNethUpgradesArmor(server)) {
 			return;
 		}
 		Container inputSlots = ((ItemCombinerMenuAccessor) (Object) this).combatlogcommands$inputSlots();
-		ItemStack template = inputSlots.getItem(0);
 		ItemStack base = inputSlots.getItem(1);
-		ItemStack addition = inputSlots.getItem(2);
-		if (template.getItem() != Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE
-				|| addition.getItem() != Items.NETHERITE_INGOT
-				|| !combatlogcommands$canMax(base.getItem())) {
+		if (!combatlogcommands$isUpgrade(inputSlots)) {
 			return;
 		}
-		ResultContainer resultSlots = ((ItemCombinerMenuAccessor) (Object) this).combatlogcommands$resultSlots();
-		resultSlots.setItem(0, combatlogcommands$buildMaxed(base));
+		Player player = combatlogcommands$findPlayer();
+		UUID id = player == null ? null : player.getUUID();
+		((ItemCombinerMenuAccessor) (Object) this).combatlogcommands$resultSlots().setItem(0, MaxGear.build(level, base, id));
 	}
 
-	private static boolean combatlogcommands$canMax(Item item) {
-		return item == Items.DIAMOND_HELMET || item == Items.DIAMOND_CHESTPLATE
-				|| item == Items.DIAMOND_LEGGINGS || item == Items.DIAMOND_BOOTS
-				|| item == Items.DIAMOND_SWORD || item == Items.DIAMOND_SPEAR
-				|| item == Items.DIAMOND_AXE || item == Items.DIAMOND_PICKAXE
-				|| item == Items.DIAMOND_SHOVEL || item == Items.DIAMOND_HOE;
-	}
-
-	private ItemStack combatlogcommands$buildMaxed(ItemStack base) {
-		ItemStack result = base.copy();
-		result.setCount(1);
-		Registry<Enchantment> reg = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-		Item item = base.getItem();
-		EnchantmentHelper.updateEnchantments(result, m -> combatlogcommands$applyMax(m, reg, item));
-		return result;
-	}
-
-	private static void combatlogcommands$applyMax(ItemEnchantments.Mutable m, Registry<Enchantment> reg, Item item) {
-		// Every maxed item gets Mending + Unbreaking III.
-		m.set(reg.getOrThrow(Enchantments.MENDING), 1);
-		m.set(reg.getOrThrow(Enchantments.UNBREAKING), 3);
-
-		if (item == Items.DIAMOND_HELMET) {
-			m.set(reg.getOrThrow(Enchantments.PROTECTION), 4);
-			m.set(reg.getOrThrow(Enchantments.AQUA_AFFINITY), 1);
-			m.set(reg.getOrThrow(Enchantments.RESPIRATION), 3);
-		} else if (item == Items.DIAMOND_CHESTPLATE) {
-			m.set(reg.getOrThrow(Enchantments.PROTECTION), 4);
-		} else if (item == Items.DIAMOND_LEGGINGS) {
-			m.set(reg.getOrThrow(Enchantments.PROTECTION), 4);
-			m.set(reg.getOrThrow(Enchantments.SWIFT_SNEAK), 3);
-		} else if (item == Items.DIAMOND_BOOTS) {
-			m.set(reg.getOrThrow(Enchantments.PROTECTION), 4);
-			m.set(reg.getOrThrow(Enchantments.DEPTH_STRIDER), 3);
-			m.set(reg.getOrThrow(Enchantments.SOUL_SPEED), 3);
-		} else if (item == Items.DIAMOND_SWORD) {
-			m.set(reg.getOrThrow(Enchantments.SHARPNESS), 5);
-			m.set(reg.getOrThrow(Enchantments.LOOTING), 3);
-			m.set(reg.getOrThrow(Enchantments.SWEEPING_EDGE), 3);
-			m.set(reg.getOrThrow(Enchantments.FIRE_ASPECT), 2);
-			m.set(reg.getOrThrow(Enchantments.KNOCKBACK), 2);
-		} else if (item == Items.DIAMOND_SPEAR) {
-			// A spear is a melee/sharp weapon (but not a sword), so no Sweeping Edge. Lunge is its own.
-			m.set(reg.getOrThrow(Enchantments.SHARPNESS), 5);
-			m.set(reg.getOrThrow(Enchantments.LOOTING), 3);
-			m.set(reg.getOrThrow(Enchantments.FIRE_ASPECT), 2);
-			m.set(reg.getOrThrow(Enchantments.KNOCKBACK), 2);
-			m.set(reg.getOrThrow(Enchantments.LUNGE), 3);
-		} else if (item == Items.DIAMOND_AXE) {
-			m.set(reg.getOrThrow(Enchantments.SHARPNESS), 5);
-			m.set(reg.getOrThrow(Enchantments.EFFICIENCY), 5);
-		} else if (item == Items.DIAMOND_PICKAXE || item == Items.DIAMOND_SHOVEL || item == Items.DIAMOND_HOE) {
-			m.set(reg.getOrThrow(Enchantments.EFFICIENCY), 5);
-			m.set(reg.getOrThrow(Enchantments.FORTUNE), 3);
+	@Inject(method = "onTake", at = @At("HEAD"), cancellable = true)
+	private void combatlogcommands$onUpgradeTaken(Player player, ItemStack stack, CallbackInfo ci) {
+		if (!(player instanceof ServerPlayer serverPlayer)) {
+			return;
 		}
+		MinecraftServer server = level.getServer();
+		if (server == null || !ModGameRules.isDoNethUpgradesArmor(server)) {
+			return;
+		}
+		Container inputSlots = ((ItemCombinerMenuAccessor) (Object) this).combatlogcommands$inputSlots();
+		if (!combatlogcommands$isUpgrade(inputSlots)) {
+			return;
+		}
+
+		ItemStack base = inputSlots.getItem(1).copy();
+		// Consume the inputs ourselves (template + diamond + ingot), then skip vanilla onTake.
+		inputSlots.removeItem(0, 1);
+		inputSlots.removeItem(1, 1);
+		inputSlots.removeItem(2, 1);
+
+		// The maxed preview was just delivered to the cursor or inventory - take it back; the real
+		// item is handed over through the confirm menu instead. Diamond gear is non-stackable, so the
+		// preview is a single distinct stack that's easy to find.
+		AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
+		if (ItemStack.matches(menu.getCarried(), stack)) {
+			menu.setCarried(ItemStack.EMPTY);
+		} else {
+			Inventory inv = serverPlayer.getInventory();
+			for (int i = 0; i < inv.getContainerSize(); i++) {
+				if (ItemStack.matches(inv.getItem(i), stack)) {
+					inv.removeItemNoUpdate(i);
+					break;
+				}
+			}
+		}
+		((ItemCombinerMenuAccessor) (Object) this).combatlogcommands$resultSlots().setItem(0, ItemStack.EMPTY);
+
+		UUID id = serverPlayer.getUUID();
+		server.execute(() -> {
+			ServerPlayer target = server.getPlayerList().getPlayer(id);
+			if (target != null) {
+				NethUpgradeMenu.open(target, base);
+			}
+		});
+		ci.cancel();
+	}
+
+	private boolean combatlogcommands$isUpgrade(Container inputSlots) {
+		return inputSlots.getItem(0).getItem() == Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE
+				&& inputSlots.getItem(2).getItem() == Items.NETHERITE_INGOT
+				&& MaxGear.canMax(inputSlots.getItem(1).getItem());
+	}
+
+	private Player combatlogcommands$findPlayer() {
+		for (Slot slot : ((AbstractContainerMenu) (Object) this).slots) {
+			if (slot.container instanceof Inventory inv) {
+				return inv.player;
+			}
+		}
+		return null;
 	}
 }
