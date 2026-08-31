@@ -101,6 +101,14 @@ There's also a dragon egg gamerule (default **false**):
 
 - `/gamerule combatlogcommands:dragoneggpowers true` — while on, the dragon egg **can't be put in an ender chest**, and any player holding a dragon egg in their inventory gets **+5 hearts** and **Strength II**. Both effects go away when they no longer have the egg (or the rule is turned off).
 - `/gamerule combatlogcommands:onemace true` — while on, only **one mace** can ever be crafted on the server. Once someone crafts a mace, nobody can craft another (the mace crafting result just won't appear). The "a mace was crafted" flag is saved, so a restart doesn't reset it. Turn the rule off to allow crafting again.
+- `/gamerule combatlogcommands:donethupgradesarmor true` — for servers where netherite is disabled. While on, doing the **normal netherite smithing upgrade** (netherite upgrade template + netherite ingot) on a **diamond** armor piece or tool/weapon produces the same diamond item **maxed out with enchantments** instead of netherite gear. Only diamond items are affected:
+  - Helmet: Protection IV, Mending, Unbreaking III, Aqua Affinity, Respiration III
+  - Chestplate: Protection IV, Mending, Unbreaking III
+  - Leggings: Protection IV, Mending, Unbreaking III, Swift Sneak III
+  - Boots: Protection IV, Mending, Unbreaking III, Depth Strider III, Soul Speed III
+  - Sword: Sharpness V, Looting III, Sweeping Edge III, Fire Aspect II, Knockback II, Mending, Unbreaking III
+  - Axe: Sharpness V, Efficiency V, Mending, Unbreaking III
+  - Pickaxe / Shovel / Hoe: Efficiency V, Fortune III, Mending, Unbreaking III
 
 ## Admin commands
 

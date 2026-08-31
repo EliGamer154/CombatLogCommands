@@ -7,8 +7,10 @@
 	"server": [
 		"CommandsMixin",
 		"CraftingMenuMixin",
+		"ItemCombinerMenuAccessor",
 		"ResultSlotMixin",
 		"SlotMixin",
+		"SmithingMenuMixin",
 		"WaymarkHomeActionsMenuMixin"
 	],
 	"injectors": {

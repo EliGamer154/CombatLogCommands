@@ -18,6 +18,7 @@ import net.minecraft.world.level.gamerules.GameRuleCategory;
  *   /gamerule combatlogcommands:disable_shop true
  *   /gamerule combatlogcommands:dragoneggpowers true
  *   /gamerule combatlogcommands:onemace true
+ *   /gamerule combatlogcommands:donethupgradesarmor true
  */
 public final class ModGameRules {
 	public static GameRule<Boolean> disableBack;
@@ -26,6 +27,7 @@ public final class ModGameRules {
 	public static GameRule<Boolean> disableShop;
 	public static GameRule<Boolean> dragonEggPowers;
 	public static GameRule<Boolean> oneMace;
+	public static GameRule<Boolean> doNethUpgradesArmor;
 
 	// Held so mixins/handlers without a Level reference (e.g. the ender-chest Slot mixin) can read
 	// gamerules. Set from ServerLifecycleEvents in the mod initializer.
@@ -41,6 +43,7 @@ public final class ModGameRules {
 		disableShop = boolRule("disable_shop");
 		dragonEggPowers = boolRule("dragoneggpowers");
 		oneMace = boolRule("onemace");
+		doNethUpgradesArmor = boolRule("donethupgradesarmor");
 	}
 
 	public static void setServer(MinecraftServer value) {
@@ -77,5 +80,9 @@ public final class ModGameRules {
 
 	public static boolean isOneMace(MinecraftServer server) {
 		return oneMace != null && Boolean.TRUE.equals(server.getGameRules().get(oneMace));
+	}
+
+	public static boolean isDoNethUpgradesArmor(MinecraftServer server) {
+		return doNethUpgradesArmor != null && Boolean.TRUE.equals(server.getGameRules().get(doNethUpgradesArmor));
 	}
 }
