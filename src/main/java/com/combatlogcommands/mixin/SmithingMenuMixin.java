@@ -61,9 +61,9 @@ public abstract class SmithingMenuMixin {
 	private static boolean combatlogcommands$canMax(Item item) {
 		return item == Items.DIAMOND_HELMET || item == Items.DIAMOND_CHESTPLATE
 				|| item == Items.DIAMOND_LEGGINGS || item == Items.DIAMOND_BOOTS
-				|| item == Items.DIAMOND_SWORD || item == Items.DIAMOND_AXE
-				|| item == Items.DIAMOND_PICKAXE || item == Items.DIAMOND_SHOVEL
-				|| item == Items.DIAMOND_HOE;
+				|| item == Items.DIAMOND_SWORD || item == Items.DIAMOND_SPEAR
+				|| item == Items.DIAMOND_AXE || item == Items.DIAMOND_PICKAXE
+				|| item == Items.DIAMOND_SHOVEL || item == Items.DIAMOND_HOE;
 	}
 
 	private ItemStack combatlogcommands$buildMaxed(ItemStack base) {
@@ -97,6 +97,12 @@ public abstract class SmithingMenuMixin {
 			m.set(reg.getOrThrow(Enchantments.SHARPNESS), 5);
 			m.set(reg.getOrThrow(Enchantments.LOOTING), 3);
 			m.set(reg.getOrThrow(Enchantments.SWEEPING_EDGE), 3);
+			m.set(reg.getOrThrow(Enchantments.FIRE_ASPECT), 2);
+			m.set(reg.getOrThrow(Enchantments.KNOCKBACK), 2);
+		} else if (item == Items.DIAMOND_SPEAR) {
+			// A spear is a melee/sharp weapon (but not a sword), so no Sweeping Edge.
+			m.set(reg.getOrThrow(Enchantments.SHARPNESS), 5);
+			m.set(reg.getOrThrow(Enchantments.LOOTING), 3);
 			m.set(reg.getOrThrow(Enchantments.FIRE_ASPECT), 2);
 			m.set(reg.getOrThrow(Enchantments.KNOCKBACK), 2);
 		} else if (item == Items.DIAMOND_AXE) {
