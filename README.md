@@ -107,7 +107,7 @@ There's also a dragon egg gamerule (default **false**):
   - Leggings: Protection IV, Mending, Unbreaking III, Swift Sneak III
   - Boots: Protection IV, Mending, Unbreaking III, Depth Strider III, Soul Speed III
   - Sword: Sharpness V, Looting III, Sweeping Edge III, Fire Aspect II, Knockback II, Mending, Unbreaking III
-  - Spear: Sharpness V, Looting III, Fire Aspect II, Knockback II, Mending, Unbreaking III
+  - Spear: Sharpness V, Looting III, Fire Aspect II, Knockback II, Lunge III, Mending, Unbreaking III
   - Axe: Sharpness V, Efficiency V, Mending, Unbreaking III
   - Pickaxe / Shovel / Hoe: Efficiency V, Fortune III, Mending, Unbreaking III
 

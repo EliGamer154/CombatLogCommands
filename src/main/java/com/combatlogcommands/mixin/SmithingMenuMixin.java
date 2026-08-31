@@ -100,11 +100,12 @@ public abstract class SmithingMenuMixin {
 			m.set(reg.getOrThrow(Enchantments.FIRE_ASPECT), 2);
 			m.set(reg.getOrThrow(Enchantments.KNOCKBACK), 2);
 		} else if (item == Items.DIAMOND_SPEAR) {
-			// A spear is a melee/sharp weapon (but not a sword), so no Sweeping Edge.
+			// A spear is a melee/sharp weapon (but not a sword), so no Sweeping Edge. Lunge is its own.
 			m.set(reg.getOrThrow(Enchantments.SHARPNESS), 5);
 			m.set(reg.getOrThrow(Enchantments.LOOTING), 3);
 			m.set(reg.getOrThrow(Enchantments.FIRE_ASPECT), 2);
 			m.set(reg.getOrThrow(Enchantments.KNOCKBACK), 2);
+			m.set(reg.getOrThrow(Enchantments.LUNGE), 3);
 		} else if (item == Items.DIAMOND_AXE) {
 			m.set(reg.getOrThrow(Enchantments.SHARPNESS), 5);
 			m.set(reg.getOrThrow(Enchantments.EFFICIENCY), 5);
