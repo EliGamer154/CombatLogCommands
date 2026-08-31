@@ -17,6 +17,7 @@ import net.minecraft.world.level.gamerules.GameRuleCategory;
  *   /gamerule combatlogcommands:disable_home true
  *   /gamerule combatlogcommands:disable_shop true
  *   /gamerule combatlogcommands:dragoneggpowers true
+ *   /gamerule combatlogcommands:onemace true
  */
 public final class ModGameRules {
 	public static GameRule<Boolean> disableBack;
@@ -24,6 +25,7 @@ public final class ModGameRules {
 	public static GameRule<Boolean> disableHome;
 	public static GameRule<Boolean> disableShop;
 	public static GameRule<Boolean> dragonEggPowers;
+	public static GameRule<Boolean> oneMace;
 
 	// Held so mixins/handlers without a Level reference (e.g. the ender-chest Slot mixin) can read
 	// gamerules. Set from ServerLifecycleEvents in the mod initializer.
@@ -38,6 +40,7 @@ public final class ModGameRules {
 		disableHome = boolRule("disable_home");
 		disableShop = boolRule("disable_shop");
 		dragonEggPowers = boolRule("dragoneggpowers");
+		oneMace = boolRule("onemace");
 	}
 
 	public static void setServer(MinecraftServer value) {
@@ -70,5 +73,9 @@ public final class ModGameRules {
 	public static boolean isDragonEggPowers() {
 		return server != null && dragonEggPowers != null
 				&& Boolean.TRUE.equals(server.getGameRules().get(dragonEggPowers));
+	}
+
+	public static boolean isOneMace(MinecraftServer server) {
+		return oneMace != null && Boolean.TRUE.equals(server.getGameRules().get(oneMace));
 	}
 }

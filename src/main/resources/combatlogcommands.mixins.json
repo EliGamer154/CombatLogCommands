@@ -6,6 +6,8 @@
 	"mixins": [],
 	"server": [
 		"CommandsMixin",
+		"CraftingMenuMixin",
+		"ResultSlotMixin",
 		"SlotMixin",
 		"WaymarkHomeActionsMenuMixin"
 	],
