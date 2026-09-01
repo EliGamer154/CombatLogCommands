@@ -1,7 +1,9 @@
 package com.combatlogcommands;
 
+import com.combatlogcommands.admin.AdminToolsHandler;
 import com.combatlogcommands.combat.CombatHandler;
 import com.combatlogcommands.combat.TeleportWarmup;
+import com.combatlogcommands.command.AdminToolsCommand;
 import com.combatlogcommands.command.CombatLogAdminCommand;
 import com.combatlogcommands.command.TpaAutoCommand;
 import com.combatlogcommands.config.ModConfig;
@@ -27,14 +29,17 @@ public class CombatLogCommands implements ModInitializer {
 		ModGameRules.register();
 
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(CombatHandler::onDamage);
+		ServerLivingEntityEvents.ALLOW_DAMAGE.register(AdminToolsHandler::allowDamage);
 		ServerPlayerEvents.LEAVE.register(CombatHandler::onLeave);
 		ServerTickEvents.END_SERVER_TICK.register(CombatHandler::onServerTick);
 		ServerTickEvents.END_SERVER_TICK.register(TeleportWarmup::onServerTick);
 		ServerTickEvents.END_SERVER_TICK.register(DragonEggHandler::onServerTick);
+		ServerTickEvents.END_SERVER_TICK.register(AdminToolsHandler::onServerTick);
 		ItemEvents.USE.register(CombatHandler::onUseItem);
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
 			CombatLogAdminCommand.register(dispatcher);
 			TpaAutoCommand.register(dispatcher);
+			AdminToolsCommand.register(dispatcher);
 		});
 		ServerLifecycleEvents.SERVER_STARTED.register(ModGameRules::setServer);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> ModGameRules.setServer(null));

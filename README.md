@@ -111,6 +111,17 @@ There's also a dragon egg gamerule (default **false**):
   - Axe: Sharpness V, Efficiency V, Mending, Unbreaking III
   - Pickaxe / Shovel / Hoe: Efficiency V, Mending, Unbreaking III, and your choice of **Fortune III or Silk Touch** (in the menu, enabling one turns the other off)
 
+## Admin tools
+
+`/admintools` (op / permission level 2+) opens a clickable in-chat menu of legitimate admin conveniences — click the buttons to toggle or run them:
+
+- **Fly**, **God mode** (invulnerable), **Speed**, **Night Vision**, **No Fall** — toggles.
+- **Heal**, **Feed**, **Repair** (held item) — instant actions.
+- **Spectate** — quick spectator toggle (fly through walls, invisible to others) for watching a rule-breaker, then use your ban/kick to deal with them.
+- **Freeze `<player>`** — holds a target player in place so they can't run while you handle them (`/admintools freeze <name>` again to release).
+
+These are normal admin powers, gated to ops. Toggles reset on server restart.
+
 ## Admin commands
 
 Requires op (permission level 2+). Every change is saved to the config file immediately — no restart or reload needed:
