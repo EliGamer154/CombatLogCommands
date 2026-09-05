@@ -8,6 +8,7 @@
 		"CommandsMixin",
 		"CraftingMenuMixin",
 		"ItemCombinerMenuAccessor",
+		"ItemMixin",
 		"ResultSlotMixin",
 		"SlotMixin",
 		"SmithingMenuMixin",
