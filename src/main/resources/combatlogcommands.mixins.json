@@ -5,11 +5,13 @@
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [],
 	"server": [
+		"BundleContentsMutableMixin",
 		"CommandsMixin",
 		"CraftingMenuMixin",
+		"HopperBlockEntityMixin",
 		"ItemCombinerMenuAccessor",
-		"ItemMixin",
 		"ResultSlotMixin",
+		"ShulkerBoxSlotMixin",
 		"SlotMixin",
 		"SmithingMenuMixin",
 		"WaymarkHomeActionsMenuMixin"
