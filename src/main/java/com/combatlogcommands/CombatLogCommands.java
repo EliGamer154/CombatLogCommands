@@ -5,6 +5,7 @@ import com.combatlogcommands.combat.CombatHandler;
 import com.combatlogcommands.combat.TeleportWarmup;
 import com.combatlogcommands.command.AdminToolsCommand;
 import com.combatlogcommands.command.CombatLogAdminCommand;
+import com.combatlogcommands.command.RestartWarnCommand;
 import com.combatlogcommands.command.TpaAutoCommand;
 import com.combatlogcommands.config.ModConfig;
 import com.combatlogcommands.dragonegg.DragonEggHandler;
@@ -40,6 +41,7 @@ public class CombatLogCommands implements ModInitializer {
 			CombatLogAdminCommand.register(dispatcher);
 			TpaAutoCommand.register(dispatcher);
 			AdminToolsCommand.register(dispatcher);
+			RestartWarnCommand.register(dispatcher);
 		});
 		ServerLifecycleEvents.SERVER_STARTED.register(ModGameRules::setServer);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> ModGameRules.setServer(null));

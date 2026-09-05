@@ -122,6 +122,10 @@ There's also a dragon egg gamerule (default **false**):
 
 These are normal admin powers, gated to ops. Toggles reset on server restart.
 
+## Broadcasts
+
+- `/restartwarn` (op) — warns everyone the server is restarting, as both a chat line and an on-screen title: "SERVER RESTARTING... BACK ONLINE IN 30 SECONDS OR LESS. IF IT TAKES MORE THAN 30 SECONDS THE ADMINS WILL FIX THE ISSUE."
+
 ## Admin commands
 
 Requires op (permission level 2+). Every change is saved to the config file immediately — no restart or reload needed:
